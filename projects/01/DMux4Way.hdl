@@ -14,5 +14,10 @@ CHIP DMux4Way {
     OUT a, b, c, d;
 
     PARTS:
-    //// Replace this comment with your code.
+    Not(in=sel[1], out=assignToAorB);
+    And(a=in, b=assignToAorB, out=valueOfAorB);
+    DMux(in=valueOfAorB, sel=sel[0], a=a, b=b);
+    
+    And(a=in, b=sel[1], out=valueOfCorD);
+    DMux(in=valueOfCorD, sel=sel[0], a=c, b=d);
 }
