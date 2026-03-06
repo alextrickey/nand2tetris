@@ -13,5 +13,6 @@ CHIP FullAdder {
     PARTS:
     HalfAdder(a=a, b=b, sum=aPlusB, carry=abCarry);
     HalfAdder(a=aPlusB, b=c, sum=sum, carry=abcCarry);
-    HalfAdder(a=abCarry, b=abcCarry, sum=carry, carry=waste);
+    // no need for 3rd adder because max sum of 1-bit inputs is 11
+    Or(a=abCarry, b=abcCarry, out=carry);
 }
