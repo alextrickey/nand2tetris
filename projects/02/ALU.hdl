@@ -41,5 +41,26 @@ CHIP ALU {
         ng;      // if (out < 0)  equals 1, else 0
 
     PARTS:
-    //// Replace this comment with your code.
+    // Prepare inputs
+    Not16(in=x, out=notX);
+    Not16(in=y, out=notY);
+    Mux16(a=x, b=false, sel=zx, out=xOrZero);
+    Mux16(a=xOrZero, b=notX, sel=nx, out=xOrNotX);
+    Mux16(a=y, b=false, sel=zy, out=yOrZero);
+    Mux16(a=yOrZero, b=notY, sel=ny, out=yOrNotY);
+
+    // Compute logic/function
+    Add16(a=xOrNotX, b=yOrNotY, out=xPlusY);
+    And16(a=xOrNotX, b=yOrNotY, out=xAndY);
+    Mux16(a=xAndY, b=xPlusY, sel=f, out=xWithY);
+
+    // Negate output (maybe)
+    Not16(in=xWithY, out=notxWithY);
+    Mux16(a=xWithY, b=notxWithY, sel=no, out=out);
+
+    //Compute zr
+
+    //Compute ng
+
+
 }
