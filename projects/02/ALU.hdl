@@ -58,6 +58,15 @@ CHIP ALU {
 
     // Negate output (maybe) and select parts
     Not16(in=xWithY, out=notXWithY);
-    Mux16(a=xWithY, b=notXWithY, sel=no, out=out);
+    Mux16(a=xWithY, b=notXWithY, sel=no, 
+          out[0..7]=out0to7, out[8..15]=out8to15, // Intermediate output
+          out[15]=ng, 
+          out=out);
+
+    //Compute zr
+    Or8Way(in=out0to7, out=anyOnes1);
+    Or8Way(in=out8to15, out=anyOnes2);
+    Or(a=anyOnes1, b=anyOnes2, out=anyOnes);
+    Not(in=anyOnes, out=zr);
 
 }
