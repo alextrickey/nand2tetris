@@ -41,26 +41,23 @@ CHIP ALU {
         ng;      // if (out < 0)  equals 1, else 0
 
     PARTS:
-    // Prepare inputs
-    Not16(in=x, out=notX);
-    Not16(in=y, out=notY);
+    // Prepare x
     Mux16(a=x, b=false, sel=zx, out=xOrZero);
-    Mux16(a=xOrZero, b=notX, sel=nx, out=xOrNotX);
+    Not16(in=xOrZero, out=notXOrZero);
+    Mux16(a=xOrZero, b=notXOrZero, sel=nx, out=newX);
+
+    // Prepare y
     Mux16(a=y, b=false, sel=zy, out=yOrZero);
-    Mux16(a=yOrZero, b=notY, sel=ny, out=yOrNotY);
+    Not16(in=yOrZero, out=notYOrMinusOne);
+    Mux16(a=yOrZero, b=notYOrMinusOne, sel=ny, out=newY);
 
     // Compute logic/function
-    Add16(a=xOrNotX, b=yOrNotY, out=xPlusY);
-    And16(a=xOrNotX, b=yOrNotY, out=xAndY);
+    Add16(a=newX, b=newY, out=xPlusY);
+    And16(a=newX, b=newY, out=xAndY);
     Mux16(a=xAndY, b=xPlusY, sel=f, out=xWithY);
 
-    // Negate output (maybe)
-    Not16(in=xWithY, out=notxWithY);
-    Mux16(a=xWithY, b=notxWithY, sel=no, out=out);
-
-    //Compute zr
-
-    //Compute ng
-
+    // Negate output (maybe) and select parts
+    Not16(in=xWithY, out=notXWithY);
+    Mux16(a=xWithY, b=notXWithY, sel=no, out=out);
 
 }
