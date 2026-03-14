@@ -13,11 +13,6 @@ CHIP Bit {
     OUT out;
 
     PARTS:
-    Not(in=load, out=dontLoad);
-    And(a=dontLoad, b=dffOut, out=prevOut);
-    And(a=load, b=in, out=newOut);
-    Or(a=prevOut, b=newOut, out=dffIn);
-    DFF(in=dffIn, out=dffOut);
-    And(a=dffOut, b=true, out=out);
-
+    Mux(a=dffOut, b=in, sel=load, out=dffIn);
+    DFF(in=dffIn, out=dffOut, out=out);
 }
