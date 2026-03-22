@@ -7,18 +7,25 @@
 // (R0, R1, R2 refer to RAM[0], RAM[1], and RAM[2], respectively.)
 // The algorithm is based on repetitive addition.
 
-// Set R2 to zero
+// Set R2 to Zero
 @R2
-D=0
-M=D
+M=0
+
+// Set R3 to 1 
 @R3
 M=1
+
+// Set R4 to R1
+@R1
+D=M
+@R4
+M=D
 
 (loop)
 // Get next digit of R0
 @R0
 D=M
-@R3 
+@R3
 D=D&M
 D=D-M
 
@@ -27,29 +34,27 @@ D=D-M
 D;JLT
 
 // If digit is 1 add product to total
-@R1
+@R4
 D=M
 @R2
 M=D+M
 
 (update)
-// Increment digit
+// Get next digit (by doubling)
 @R3
-M=M+1
+D=M
+M=D+M
 
 // Double R1
-@R1
+@R4
 D=M
-M=D+M 
+M=D+M
 
 // Check end condition
-@16
-D=M
 @R3
-D=M-D
-
+D=M
 @end
-D;JLT
+D;JEQ
 
 @loop
 A;JMP
