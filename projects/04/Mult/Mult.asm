@@ -19,7 +19,7 @@ M=1
 @R0
 D=M
 @R3 
-D=M&D
+D=D&M
 D=D-M
 
 // If digit is 0 update counters, and jump to next digit
@@ -30,7 +30,7 @@ D;JLT
 @R1
 D=M
 @R2
-M=M+D
+M=D+M
 
 (update)
 // Increment digit
@@ -40,7 +40,7 @@ M=M+1
 // Double R1
 @R1
 D=M
-M=M+D 
+M=D+M 
 
 // Check end condition
 @16
@@ -52,6 +52,6 @@ D=M-D
 D;JLT
 
 @loop
-JMP
+A;JMP
 
 (end)
