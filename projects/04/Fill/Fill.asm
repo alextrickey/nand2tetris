@@ -8,4 +8,33 @@
 // i.e. writes "black" in every pixel. When no key is pressed, 
 // the screen should be cleared.
 
-//// Replace this comment with your code.
+(start)
+
+// Init screen index
+@SCREEN
+D=A
+@R1
+M=0
+
+(listen.for.keypress)
+
+
+(blacken.screen)
+// Blacken a 16bit block
+@R1
+D=M
+@SCREEN
+A=A+D
+M=-1
+
+// Increment screen index
+@R1
+DM=M+1
+
+// Check for end of screen
+@8192
+D=A-D
+@blacken.screen
+D;JGT
+
+(end)
