@@ -10,6 +10,12 @@
 
 (start)
 
+// Init screen state (white)
+@R2
+M=0
+
+(reset)
+
 // Init screen index
 @SCREEN
 D=A
@@ -21,6 +27,29 @@ M=0
 M=0
 
 (listen.for.keypress)
+@KBD
+D=M
+@press
+D;JGT
+
+// If no keypress & black -> whiten screen
+// Otherwise listen for press
+@R2
+D=M
+@whiten.screen
+D;JGT 
+@listen.for.keypress
+A;JMP
+
+(press)
+// If keypress & white -> blacken screen
+// Otherwise listen for press
+@R2
+D=M
+@blacken.screen
+D;JEQ
+@listen.for.keypress
+A;JMP
 
 
 (blacken.screen)
@@ -28,7 +57,7 @@ M=0
 @R1
 D=M
 @SCREEN
-A=A+D
+A=D+A
 M=-1
 
 // Increment screen index
@@ -45,8 +74,8 @@ D;JGT
 @R2
 M=1
 
-@start
-JMP
+@reset
+A;JMP
 
 (whiten.screen)
 // Whiten a 16bit block
@@ -70,7 +99,7 @@ D;JGT
 @R2
 M=0
 
-@start
-JMP
+@reset
+A;JMP
 
 (end)
