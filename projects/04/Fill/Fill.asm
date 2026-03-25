@@ -22,10 +22,6 @@ D=A
 @R1
 M=0
 
-// Init screen state (white)
-@R2
-M=0
-
 (listen.for.keypress)
 @KBD
 D=M
@@ -82,7 +78,7 @@ A;JMP
 @R1
 D=M
 @SCREEN
-A=A+D
+A=D+A
 M=0
 
 // Increment screen index
