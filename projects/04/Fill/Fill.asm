@@ -16,6 +16,10 @@ D=A
 @R1
 M=0
 
+// Init screen state (white)
+@R2
+M=0
+
 (listen.for.keypress)
 
 
@@ -37,7 +41,11 @@ D=A-D
 @blacken.screen
 D;JGT
 
-@listen.for.keypress
+// Update screen state
+@R2
+M=1
+
+@start
 JMP
 
 (whiten.screen)
@@ -58,7 +66,11 @@ D=A-D
 @whiten.screen
 D;JGT
 
-@listen.for.keypress
+// Update screen state
+@R2
+M=0
+
+@start
 JMP
 
 (end)
