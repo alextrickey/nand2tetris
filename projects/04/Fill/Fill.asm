@@ -37,4 +37,28 @@ D=A-D
 @blacken.screen
 D;JGT
 
+@listen.for.keypress
+JMP
+
+(whiten.screen)
+// Whiten a 16bit block
+@R1
+D=M
+@SCREEN
+A=A+D
+M=0
+
+// Increment screen index
+@R1
+DM=M+1
+
+// Check for end of screen
+@8192
+D=A-D
+@whiten.screen
+D;JGT
+
+@listen.for.keypress
+JMP
+
 (end)
