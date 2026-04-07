@@ -32,5 +32,32 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-	//// Replace this comment with your code.
+	
+    // Check Instruction Format
+    // Address Format: 0vvv vvvv vvvv vvvv
+    // ALU Format: 111a cccc ccdd djjj
+    Not(in=instruction[15], out=addressInstruction);
+    And(a=instruction[15], b=true, out=aluInstruction);
+
+    // ALU Computation
+
+    // Should A or Memory[A] be used for ALU computation?
+    // (Input the A of "111a cccc ccdd djjj")
+    Mux16(a=registerA, b=inM, sel=instruction[12], out=xInput);
+
+    // Get ALU Result
+    // (Input the Cs of "111a cccc ccdd djjj")
+	ALU(x=xInput, 
+        y=registerD, 
+        zx=instruction[11], 
+        nx=instruction[10], 
+        zy=instruction[9], 
+        ny=instruction[8], 
+        f=instruction[7], 
+        no=instruction[6], 
+        out=outALU, 
+        zr=zrOutALU, 
+        ng=ngOutALU);
+
+    
 }
