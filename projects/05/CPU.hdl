@@ -32,12 +32,15 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-	
+
     // Check Instruction Format
+
     // Address Format: 0vvv vvvv vvvv vvvv
-    // ALU Format: 111a cccc ccdd djjj
     Not(in=instruction[15], out=addressInstruction);
+
+    // ALU Format: 111a cccc ccdd djjj
     And(a=instruction[15], b=true, out=aluInstruction);
+
 
     // ALU Computation
 
@@ -59,8 +62,8 @@ CHIP CPU {
         zr=zrOutALU, 
         ng=ngOutALU);
 
-    
-    // Update Registers and Memory
+
+    // Update Registers
 
     // Register A
     // If ALU instruction, check first D of "111a cccc ccdd djjj" (load ALU out)
@@ -75,11 +78,36 @@ CHIP CPU {
     // Register D
     And(a=aluInstruction, b=instruction[4], out=loadD);
     Mux16(a=registerD, b=outALU, sel=loadD, out=nextD);
-    
     Register(in=nextD, load=loadD, out=registerD);
 
     // Update Memory[A]
     And(a=aluInstruction, b=instruction[3], out=loadM, out=writeM);
     Mux16(a=inM, b=outALU, sel=loadM, out=outM);
+
+    // Check jump conditions
+    // Jump logic is from the Js of "111a cccc ccdd djjj"
+
+    // j1 (jump if out < 0)
+    // out < 0 iff ngOutALU and NOT zrOutALU
+    Not(in=zrOutALU, out=notZrOutALU);
+    And(a=ngOutALU, b=notZrOutALU, out=ltOutALU);
+    And(a=instruction[2], b=ltOutALU, out=jump1);
+
+    // j2 (jump if out = 0)
+    // out == 0 iff zrOutALU
+    And(a=instruction[1], b=zrOutALU, out=jump2);
+
+    // j3 (jump if out > 0) 
+    // out > 0 iff NOT ngOutALU
+    Not(in=ngOutALU, out=gtOutALU);
+    And(a=instruction[0], b=gtOutALU, out=jump3);
+
+    Or(a=jump1, b=jump2, out=jump1or2);
+    Or(a=jump1or2, b=jump3, out=jump);
+
+    // Update PC conditions
+
+    //PC(in= , load= , inc= , reset=reset, out=pc);
+    // TODO ... other things can go in PC
 
 }
