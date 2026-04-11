@@ -67,18 +67,17 @@ CHIP CPU {
     // Jump logic is from the Js of "111a cccc ccdd djjj"
 
     // j1 (jump if out < 0)
-    // out < 0 iff ngOutALU and NOT zrOutALU
-    Not(in=zrOutALU, out=notZrOutALU);
-    And(a=ngOutALU, b=notZrOutALU, out=ltOutALU);
-    And(a=instruction[2], b=ltOutALU, out=jump1);
+    // out < 0 iff ngOutALU
+    And(a=instruction[2], b=ngOutALU, out=jump1);
 
     // j2 (jump if out = 0)
     // out == 0 iff zrOutALU
     And(a=instruction[1], b=zrOutALU, out=jump2);
 
     // j3 (jump if out > 0) 
-    // out > 0 iff NOT ngOutALU
-    Not(in=ngOutALU, out=gtOutALU);
+    // out > 0 iff NOT (ngOutALU OR zrOutALU)
+    Or(a=ngOutALU, b=zrOutALU, out=leqOutALU);
+    Not(in=leqOutALU, out=gtOutALU);
     And(a=instruction[0], b=gtOutALU, out=jump3);
 
     Or(a=jump1, b=jump2, out=jump1or2);
