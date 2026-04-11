@@ -107,6 +107,6 @@ CHIP CPU {
     Mux16(a=inM, b=outALU, sel=loadM, out=outM);
 
     // Update PC
-    PC(in=registerA, load=jump, inc=true, reset=reset, out=pc);
+    PC(in=registerA, load=jump, inc=true, reset=reset, out[0..14]=pc);
 
 }
