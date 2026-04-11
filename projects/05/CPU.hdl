@@ -46,12 +46,12 @@ CHIP CPU {
 
     // Should A or Memory[A] be used for ALU computation?
     // (Input the A of "111a cccc ccdd djjj")
-    Mux16(a=AOut, b=inM, sel=instruction[12], out=xInput);
+    Mux16(a=AOut, b=inM, sel=instruction[12], out=yInput);
 
     // Get ALU Result
     // (Input the Cs of "111a cccc ccdd djjj")
-	ALU(x=xInput, 
-        y=DOut, 
+	ALU(x=DOut, 
+        y=yInput, 
         zx=instruction[11], 
         nx=instruction[10], 
         zy=instruction[9], 
