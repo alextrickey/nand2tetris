@@ -93,15 +93,13 @@ CHIP CPU {
     // If Address instruction: Set A to instruction
     And(a=aluInstruction, b=instruction[5], out=loadAfromALUout);
     Or(a=loadAfromALUout, b=addressInstruction, out=loadA);
-    Mux16(a=AOut, b=outALU, sel=instruction[5], out=aluA);
-    Mux16(a=aluA, b=instruction, sel=aluInstruction, out=nextA);
+    Mux16(a=instruction, b=outALU, sel=aluInstruction, out=nextA);
     
-    ARegister(in=instruction, load=loadA, out=AOut, out[0..14]=addressM);
+    ARegister(in=nextA, load=loadA, out=AOut, out[0..14]=addressM);
     
     // Register D
     And(a=aluInstruction, b=instruction[4], out=loadD);
-    Mux16(a=DOut, b=outALU, sel=loadD, out=nextD);
-    DRegister(in=nextD, load=loadD, out=DOut);
+    DRegister(in=outALU, load=loadD, out=DOut);
 
     // Update Memory[A]
     And(a=aluInstruction, b=instruction[3], out=loadM, out=writeM);
