@@ -1,9 +1,16 @@
+#!/usr/bin/env python3
 
+import argparse
 
 class Parser:
-    pass
+    def __init__(self, filename):
+        with open(filename) as f:
+            assembly_lines = f.readlines()
+        # print(filename)
+        # print(assembly_lines[0:10])
 
-class Assembler:
+
+class Code:
     pass
 
 class SymbolTable:
@@ -11,4 +18,11 @@ class SymbolTable:
 
 
 if __name__ == "__main__":
-    pass
+
+    # Initialize CLI Parser, Get Args
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filename")
+    args = parser.parse_args()
+
+
+    p = Parser(args.filename)
