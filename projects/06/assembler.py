@@ -118,7 +118,22 @@ class Parser:
 
 
 class Code:
-    pass
+    def __init__(self, parser):
+        pass
+
+    def make_binary(self):
+        self.get_dest_code()
+        self.get_comp_code()
+        self.get_jump_code()
+    
+    def get_dest_code(self):
+        pass
+
+    def get_comp_code():
+        pass
+
+    def get_jump_code():
+        pass
 
 class SymbolTable:
     pass
@@ -140,7 +155,7 @@ if __name__ == "__main__":
             d = p.get_destinations(c)
             j = p.get_jump(c)
         else: 
-            d=None
-            j=None
+            d=''
+            j=''
         print(c, ct, d, j)
         
