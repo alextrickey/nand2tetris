@@ -7,6 +7,37 @@ import re
 # Comment Regex
 COMMENT = r"//"  # two forward slashes
 
+# Address Command Regex
+ADDRESS_CMD = r"^@\d+$"  # ampersand followed by 1 or more digits
+
+# Label Command Regex
+LABEL = r"[a-zA-Z]+\w*"  # Starts with a letter, contains only letters, digits, and underscores
+LABEL_CMD = r"^\(" + LABEL + r"\)$"
+
+# Compute/Jump Command Regex
+ASSIGN = r"([AMD]+=)?"
+
+RESULT_0 = r"0"
+RESULT_1 = r"-?1"
+RESULT_2 = r"[-!]?[AMD]"
+RESULT_3 = r"[AMD][+-][AMD]"
+RESULT_4 = r"[AMD][\&\|][AMD]"
+RESULT = (
+	r"((" + 
+    RESULT_0 + r")|(" + 
+    RESULT_1 + r")|(" +
+    RESULT_2 + r")|(" +
+    RESULT_3 + r")|(" +
+    RESULT_4 + r")|(" +
+    r"))"
+)
+
+JUMP_0 = r";JMP"
+JUMP_1 = r";J[GL][TE]"
+JUMP = r"((" + JUMP_0 + r")|(" + JUMP_1 + r"))?"
+
+COMPUTE_CMD = r"^" + ASSIGN + RESULT + JUMP + r"$"
+
 
 # Jump Patterns
 
@@ -26,6 +57,24 @@ class Parser:
             self.linei += 1
         else: 
             print('End of file')
+
+    def command_type(self, command):
+        
+        match = re.search(ADDRESS_CMD, command)
+        if match:
+	        # ADDRESS = self.command[1:match.span()[1]]
+            return 'A_COMMAND'
+        
+        match = re.search(LABEL_CMD, command)
+        if match:
+            return 'L_COMMAND'
+        
+        match = re.search(COMPUTE_CMD, command)
+        if match:
+            return 'C_COMMAND'
+        
+        raise SyntaxError(f"Unrecognized command format: {command}")
+
 
     def find_commands(self):
         for l in self.filelines:
@@ -62,5 +111,5 @@ if __name__ == "__main__":
     p = Parser(args.filename)
     p.find_commands()
 
-    for l in p.commands:
-        print(l)
+    for c in p.commands:
+        print(c, p.command_type(c))
