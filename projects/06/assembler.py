@@ -48,16 +48,6 @@ class Parser:
         self.commands = []
         self.next = 0
 
-    def has_more_commands(self):
-        return self.next < len(self.commands) - 1
-
-    def advance(self):
-        if self.has_more_commands():
-            self.command = self.commands[self.next]
-            self.linei += 1
-        else: 
-            print('End of file')
-
     def command_type(self, command):
         
         match = re.search(ADDRESS_CMD, command)
