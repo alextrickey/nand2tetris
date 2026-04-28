@@ -14,8 +14,8 @@ ADDRESS_CMD = r"^@\d+$"  # ampersand followed by 1 or more digits
 LABEL = r"[a-zA-Z]+\w*"  # Starts with a letter, contains only letters, digits, and underscores
 LABEL_CMD = r"^\(" + LABEL + r"\)$"
 
-# Compute/Jump Command Regex
-ASSIGN = r"([AMD]+=)?"
+# Compute Command Regex ("Destination=Result;Jump")
+DESTINATION = r"([AMD]+=)?"
 
 RESULT_0 = r"0"
 RESULT_1 = r"-?1"
@@ -36,7 +36,7 @@ JUMP_0 = r";JMP"
 JUMP_1 = r";J[GL][TE]"
 JUMP = r"((" + JUMP_0 + r")|(" + JUMP_1 + r"))?"
 
-COMPUTE_CMD = r"^" + ASSIGN + RESULT + JUMP + r"$"
+COMPUTE_CMD = r"^" + DESTINATION + RESULT + JUMP + r"$"
 
 
 # Jump Patterns
@@ -46,7 +46,6 @@ class Parser:
         with open(filename) as f:
             self.filelines = f.readlines()
         self.commands = []
-        self.next = 0
 
     def command_type(self, command):
         
@@ -67,6 +66,7 @@ class Parser:
 
 
     def find_commands(self):
+        # TODO Add label command filter/processing here:
         for l in self.filelines:
             c = self._remove_comments(l)
             c = self._remove_whitespace(c)
