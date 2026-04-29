@@ -46,18 +46,26 @@ JUMP = (r"((" +
 
 COMPUTE_CMD = DESTINATION + r"?" + RESULT + JUMP + r"?"
 
+class SymbolTable:
+
+    def __init__(self, symbols=constants.SYMBOLS):
+        self.symbols = symbols
+
+    def add_symbol(self, symbol: str, address: int):
+        self.symbols[symbol]=address
+
 
 class Parser:
-    def __init__(self, filename):
+    def __init__(self, filename: str):
         with open(filename) as f:
             self.filelines = f.readlines()
         self.commands = []
 
-    def is_label(self, command):
+    def is_label(self, command: str):
         match = re.search(LABEL_CMD, command)
         return True if match else False
 
-    def command_type(self, command):
+    def command_type(self, command: str):
         
         match = re.search(ADDRESS_CMD, command)
         if match:
@@ -69,7 +77,7 @@ class Parser:
         
         raise SyntaxError(f"Unrecognized command format: {command}")
 
-    def find_commands(self, symbols=None):
+    def find_commands(self, symbols: type[SymbolTable] = None):
         rom_address=0
         for l in self.filelines:
             c = self._remove_comments(l)
@@ -83,20 +91,20 @@ class Parser:
                 self.commands.append(c)
                 rom_address += 1
 
-    def _remove_comments(self, line):
+    def _remove_comments(self, line: str):
         return re.split(COMMENT, line, maxsplit=1)[0]
 
-    def _remove_whitespace(self, line):
+    def _remove_whitespace(self, line: str):
         return re.sub(r"\s+", "", line)
     
-    def _is_empty_string(self, line):
+    def _is_empty_string(self, line: str):
         return line == ""
 
-    def parse_label(self, l_command):
+    def parse_label(self, l_command: str):
         match = re.search(LABEL, l_command)
         return l_command[match.span()]
 
-    def get_destinations(self, c_command):
+    def get_destinations(self, c_command: str):
         match = re.search(DESTINATION, c_command)
         if match: 
             dest = c_command[match.start():match.end()]
@@ -104,21 +112,21 @@ class Parser:
         else: 
             return None
 
-    def get_jump(self, c_command):
+    def get_jump(self, c_command: str):
         match = re.search(JUMP, c_command)
         if match:
             return c_command[match.start()+1:]
         else: 
             return None
 
-    def get_compute(self, c_command):
+    def get_compute(self, c_command: str):
         c_command = re.sub(DESTINATION, "", c_command)
         c_command = re.sub(JUMP, "", c_command)
         # TODO
 
 
 class Code:
-    def __init__(self, parser):
+    def __init__(self, parser: type[Parser]):
         pass
 
     def make_binary(self):
@@ -135,20 +143,15 @@ class Code:
     def get_jump_code():
         pass
 
-class SymbolTable:
-    def __init__(self, symbols=constants.SYMBOLS):
-        self.symbols = symbols
-    def add_symbol(self, symbol, address):
-        self.symbols[symbol]=address
-
 
 if __name__ == "__main__":
 
-    # Initialize CLI Parser, Get Args
+    # Initialize CLI and Get Args
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
     args = parser.parse_args()
 
+    # Initialize Parser and Find Commands
     p = Parser(args.filename)
     p.find_commands()
 
