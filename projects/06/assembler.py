@@ -3,16 +3,17 @@
 import argparse
 import re
 
+import constants
 
 # Comment Regex
 COMMENT = r"//"  # two forward slashes
 
-# Address Command Regex
-ADDRESS_CMD = r"^@\d+$"  # ampersand followed by 1 or more digits
-
 # Label Command Regex
 LABEL = r"[a-zA-Z]+\w*"  # Starts with a letter, contains only letters, digits, and underscores
 LABEL_CMD = r"^\(" + LABEL + r"\)$"
+
+# Address Command Regex
+ADDRESS_CMD = r"^@\d+$"  # ampersand followed by 1 or more digits
 
 # Compute Command Regex ("Destination=Result;Jump")
 DESTINATION = r"^([AMD]+=)"
@@ -46,13 +47,15 @@ JUMP = (r"((" +
 COMPUTE_CMD = DESTINATION + r"?" + RESULT + JUMP + r"?"
 
 
-# Jump Patterns
-
 class Parser:
     def __init__(self, filename):
         with open(filename) as f:
             self.filelines = f.readlines()
         self.commands = []
+
+    def is_label(self, command):
+        match = re.search(LABEL_CMD, command)
+        return True if match else False
 
     def command_type(self, command):
         
@@ -60,25 +63,25 @@ class Parser:
         if match:
             return 'A_COMMAND'
         
-        match = re.search(LABEL_CMD, command)
-        if match:
-            return 'L_COMMAND'
-        
         match = re.search(COMPUTE_CMD, command)
         if match:
             return 'C_COMMAND'
         
         raise SyntaxError(f"Unrecognized command format: {command}")
 
-    def find_commands(self):
-        # TODO Add label command filter/processing here:
+    def find_commands(self, symbols=None):
+        rom_address=0
         for l in self.filelines:
             c = self._remove_comments(l)
             c = self._remove_whitespace(c)
             if self._is_empty_string(c):
                 next
+            if self.is_label(c) and symbols:
+                symbols.add_symbol(c[1:-1], rom_address)
+                next
             else:
                 self.commands.append(c)
+                rom_address += 1
 
     def _remove_comments(self, line):
         return re.split(COMMENT, line, maxsplit=1)[0]
@@ -92,9 +95,6 @@ class Parser:
     def parse_label(self, l_command):
         match = re.search(LABEL, l_command)
         return l_command[match.span()]
-
-    def get_symbol(self, a_command):
-        pass
 
     def get_destinations(self, c_command):
         match = re.search(DESTINATION, c_command)
@@ -136,7 +136,10 @@ class Code:
         pass
 
 class SymbolTable:
-    pass
+    def __init__(self, symbols=constants.SYMBOLS):
+        self.symbols = symbols
+    def add_symbol(self, symbol, address):
+        self.symbols[symbol]=address
 
 
 if __name__ == "__main__":
@@ -158,4 +161,3 @@ if __name__ == "__main__":
             d=''
             j=''
         print(c, ct, d, j)
-        
