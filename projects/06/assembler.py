@@ -9,11 +9,11 @@ import constants
 COMMENT = r"//"  # two forward slashes
 
 # Label Command Regex
-LABEL = r"[a-zA-Z]+\w*"  # Starts with a letter, contains only letters, digits, and underscores
+LABEL = r"[a-zA-Z]+[a-zA-Z_\d]*\w*"  # Starts with a letter, contains only letters, digits, and underscores
 LABEL_CMD = r"^\(" + LABEL + r"\)$"
 
 # Address Command Regex
-ADDRESS_CMD = r"^@\d+$"  # ampersand followed by 1 or more digits
+ADDRESS_CMD = r"^\@((\d+)|(" + LABEL + r"))$"  # ampersand followed by 1 or more digits
 
 # Compute Command Regex ("Destination=Result;Jump")
 DESTINATION = r"^([AMD]+=)"
@@ -48,7 +48,7 @@ COMPUTE_CMD = DESTINATION + r"?" + RESULT + JUMP + r"?"
 
 class SymbolTable:
 
-    def __init__(self, symbols=constants.SYMBOLS):
+    def __init__(self, symbols: dict = constants.SYMBOLS):
         self.symbols = symbols
 
     def add_symbol(self, symbol: str, address: int):
@@ -77,16 +77,17 @@ class Parser:
         
         raise SyntaxError(f"Unrecognized command format: {command}")
 
+
     def find_commands(self, symbols: type[SymbolTable] = None):
         rom_address=0
         for l in self.filelines:
             c = self._remove_comments(l)
             c = self._remove_whitespace(c)
             if self._is_empty_string(c):
-                next
+                continue
             if self.is_label(c) and symbols:
                 symbols.add_symbol(c[1:-1], rom_address)
-                next
+                continue
             else:
                 self.commands.append(c)
                 rom_address += 1
@@ -127,7 +128,10 @@ class Parser:
 
 class Code:
     def __init__(self, parser: type[Parser]):
-        pass
+        self.parser = parser
+        self.dests = constants.DEST_NMEMONICS
+        self.jumps = constants.JUMP_NMEMONICS
+        self.codes = constants.CODE_NMEMONICS
 
     def make_binary(self):
         self.get_dest_code()
@@ -151,16 +155,22 @@ if __name__ == "__main__":
     parser.add_argument("filename")
     args = parser.parse_args()
 
+    # Initialize Symbols Table
+    s = SymbolTable()
+
     # Initialize Parser and Find Commands
     p = Parser(args.filename)
-    p.find_commands()
+    p.find_commands(symbols=s)
 
     for c in p.commands:
-        ct = p.command_type(c)
-        if ct == 'C_COMMAND':
-            d = p.get_destinations(c)
-            j = p.get_jump(c)
-        else: 
-            d=''
-            j=''
-        print(c, ct, d, j)
+        print(c, p.command_type(c))
+        #ct = p.command_type(c)
+        #if ct == 'C_COMMAND':
+        #    d = p.get_destinations(c)
+        #    j = p.get_jump(c)
+        #else: 
+        #    d=''
+        #    j=''
+        #print(c, ct, d, j)
+
+    print(s.symbols)
