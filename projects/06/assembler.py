@@ -2,18 +2,27 @@
 
 import argparse
 import re
+from typing import Optional
 
+import utils
 import constants
 
 # Comment Regex
-COMMENT = r"//"  # two forward slashes
+# Comments are created by two forward slashes and all text after will be ignored
+COMMENT = r"//"  
 
 # Label Command Regex
-LABEL = r"[a-zA-Z]+[a-zA-Z_\d]*\w*"  # Starts with a letter, contains only letters, digits, and underscores
+# Labels must start with a letter and contain only letters, digits, and underscores
+# Labels are created with parentheses (just before the relevant line)
+LABEL = r"[a-zA-Z]+[a-zA-Z_\d]*\w*"  
 LABEL_CMD = r"^\(" + LABEL + r"\)$"
 
 # Address Command Regex
-ADDRESS_CMD = r"^\@((\d+)|(" + LABEL + r"))$"  # ampersand followed by 1 or more digits
+# Addresses are specified with an ampersand followed by 1 or more digits or a label
+INT_ADDRESS_CMD = r"^\@(\d+)$"  
+VAR_ADDRESS_CMD = r"^\@(" + LABEL + r")$"
+ADDRESS_CMD = r"^\@((\d+)|(" + LABEL + r"))$"  
+
 
 # Compute Command Regex ("Destination=Result;Jump")
 DESTINATION = r"^([AMD]+=)"
@@ -47,93 +56,98 @@ JUMP = (r"((" +
 COMPUTE_CMD = DESTINATION + r"?" + RESULT + JUMP + r"?"
 
 class SymbolTable:
+    def __init__(self, ram_start: int = constants.RAM_START):
+        
+        self.ram_start = ram_start
+        self.ram_symbols = {s: a for s,a in constants.RAM_SYMBOLS.items()}
+        self.mmio_symbols = {s: a for s,a in constants.MEM_MAPPED_IO_SYMBOLS.items()}
+        self.next_ram_address = max(self.ram_symbols.values()) + 1
 
-    def __init__(self, symbols: dict = constants.SYMBOLS):
-        self.symbols = symbols
+        self.symbols = {**self.ram_symbols, **self.mmio_symbols}
 
-    def add_symbol(self, symbol: str, address: int):
-        self.symbols[symbol]=address
+    def symbol_exists(self, symbol: str):
+        return symbol in self.symbols.keys()
+
+    def insert(self, symbol: str, address:  Optional[int] = None):
+        if symbol in self.symbols.keys():
+            raise SyntaxError(f"Symbol '{symbol}' previously defined.")
+
+        if address: 
+            self.symbols[symbol]=address
+        else:
+            self.symbols[symbol]=self.next_ram_address
+            self.next_ram_address += 1
+
+    def get_address(self, symbol: str):
+        if self.symbol_exists(symbol):
+            return self.symbols[symbol]
+        else: 
+            self.insert(symbol)
 
 
 class Parser:
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, symbols: type[SymbolTable] = None):
         with open(filename) as f:
             self.filelines = f.readlines()
         self.commands = []
-
-    def is_label(self, command: str):
-        match = re.search(LABEL_CMD, command)
-        return True if match else False
-
-    def command_type(self, command: str):
+        self.symbols = symbols
+        if self.symbols:
+            self.find_rom_commands()
+            self.resolve_addresses()
         
-        match = re.search(ADDRESS_CMD, command)
-        if match:
-            return 'A_COMMAND'
-        
-        match = re.search(COMPUTE_CMD, command)
-        if match:
-            return 'C_COMMAND'
-        
-        raise SyntaxError(f"Unrecognized command format: {command}")
-
-
-    def find_commands(self, symbols: type[SymbolTable] = None):
+    def find_rom_commands(self):
         rom_address=0
         for l in self.filelines:
             c = self._remove_comments(l)
-            c = self._remove_whitespace(c)
-            if self._is_empty_string(c):
+            c = utils.remove_whitespace(c)
+            if utils.is_empty_string(c):
                 continue
-            if self.is_label(c) and symbols:
-                symbols.add_symbol(c[1:-1], rom_address)
+            if self.is_label_cmd(c):
+                self.symbols.insert(c[1:-1], rom_address)
                 continue
             else:
                 self.commands.append(c)
                 rom_address += 1
+    
+    def resolve_addresses(self):
+        for c in self.commands:
+            if self.is_address_cmd(c):
+                self.parse_address(c)
+
+    def is_label_cmd(self, command: str):
+        match = re.search(LABEL_CMD, command)
+        return True if match else False
+
+    def is_address_cmd(self, command: str):
+        match = re.search(ADDRESS_CMD, command)
+        return True if match else False
+    
+    def parse_address_cmd(self, command: str):
+        match = re.search(INT_ADDRESS_CMD, command)
+        if match: 
+            return command[1:], int(command[1:])
+        match = re.search(VAR_ADDRESS_CMD, command)
+        if match:
+            return command[1:], self.symbols.get_address(command[1:])
 
     def _remove_comments(self, line: str):
         return re.split(COMMENT, line, maxsplit=1)[0]
 
-    def _remove_whitespace(self, line: str):
-        return re.sub(r"\s+", "", line)
-    
-    def _is_empty_string(self, line: str):
-        return line == ""
+    def parse_compute_command():
+        pass
 
-    def parse_label(self, l_command: str):
-        match = re.search(LABEL, l_command)
-        return l_command[match.span()]
-
-    def get_destinations(self, c_command: str):
-        match = re.search(DESTINATION, c_command)
-        if match: 
-            dest = c_command[match.start():match.end()]
-            return [d for d in ['A', 'M', 'D'] if d in dest]
-        else: 
-            return None
-
-    def get_jump(self, c_command: str):
-        match = re.search(JUMP, c_command)
-        if match:
-            return c_command[match.start()+1:]
-        else: 
-            return None
-
-    def get_compute(self, c_command: str):
-        c_command = re.sub(DESTINATION, "", c_command)
-        c_command = re.sub(JUMP, "", c_command)
-        # TODO
+    def parse_address_command(command, symbol_table):
+        pass
 
 
 class Code:
-    def __init__(self, parser: type[Parser]):
+    def __init__(self, parser: type[Parser], symboltable: type[SymbolTable]):
         self.parser = parser
-        self.dests = constants.DEST_NMEMONICS
-        self.jumps = constants.JUMP_NMEMONICS
-        self.codes = constants.CODE_NMEMONICS
+        self.dests = constants.DEST_MNEMONICS
+        self.jumps = constants.JUMP_MNEMONICS
+        self.codes = constants.CODE_MNEMONICS
 
-    def make_binary(self):
+    def make_binary(self, command):
         self.get_dest_code()
         self.get_comp_code()
         self.get_jump_code()
@@ -159,11 +173,16 @@ if __name__ == "__main__":
     s = SymbolTable()
 
     # Initialize Parser and Find Commands
-    p = Parser(args.filename)
-    p.find_commands(symbols=s)
+    p = Parser(args.filename, s)
+
+    c = Code(parser=p, symboltable=s)
 
     for c in p.commands:
-        print(c, p.command_type(c))
+        print(c)
+        if p.is_address_cmd(c):
+             n, a = p.parse_address(c)
+             print(n, a)
+        print('\n')
         #ct = p.command_type(c)
         #if ct == 'C_COMMAND':
         #    d = p.get_destinations(c)

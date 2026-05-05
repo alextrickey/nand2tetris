@@ -4,7 +4,7 @@
 # Code Nmemonic Mappings #
 ##########################
 
-DEST_NMEMONICS = {
+DEST_MNEMONICS = {
     'AMD': '111',
     'ADM': '111',
     'MDA': '111',
@@ -24,8 +24,9 @@ DEST_NMEMONICS = {
     'D': '010',
 }
 
+
 # Format: 'LEG'
-JUMP_NMEMONICS = {
+JUMP_MNEMONICS = {
     None:  '000',
     'JGT': '001',
     'JEQ': '010',
@@ -37,7 +38,7 @@ JUMP_NMEMONICS = {
 }
 
 # Format:   'acccccc'
-CODE_NMEMONICS = {
+CODE_MNEMONICS = {
     '0':    '0101010',
     '1':    '0111111',
     '-1':   '0111010',
@@ -68,32 +69,36 @@ CODE_NMEMONICS = {
     'D|M':  '1010101',
 }
 
-############################
-# Predefined Symbols Table #
-############################
+######################
+# Predefined Symbols #
+######################
+RAM_START = 1024
 
-SYMBOLS = {
-    'SP':     0,
-    'LCL':    1,
-    'ARG':    2,
-    'THIS':   3,
-    'THAT':   4,
-    'R0':     0,
-    'R1':     1,
-    'R2':     2,
-    'R3':     3,
-    'R4':     4,
-    'R5':     5,
-    'R6':     6,
-    'R7':     7,
-    'R8':     8,
-    'R9':     9,
-    'R10':    10,
-    'R11':    11,
-    'R12':    12,
-    'R13':    13,
-    'R14':    14,
-    'R15':    15,
+RAM_SYMBOLS = {
+    'SP':     RAM_START + 0,
+    'LCL':    RAM_START + 1,
+    'ARG':    RAM_START + 2,
+    'THIS':   RAM_START + 3,
+    'THAT':   RAM_START + 4,
+    'R0':     RAM_START + 0,
+    'R1':     RAM_START + 1,
+    'R2':     RAM_START + 2,
+    'R3':     RAM_START + 3,
+    'R4':     RAM_START + 4,
+    'R5':     RAM_START + 5,
+    'R6':     RAM_START + 6,
+    'R7':     RAM_START + 7,
+    'R8':     RAM_START + 8,
+    'R9':     RAM_START + 9,
+    'R10':    RAM_START + 10,
+    'R11':    RAM_START + 11,
+    'R12':    RAM_START + 12,
+    'R13':    RAM_START + 13,
+    'R14':    RAM_START + 14,
+    'R15':    RAM_START + 15,
+}
+    
+MEM_MAPPED_IO_SYMBOLS = {
     'SCREEN': 16384,
     'KBD':    24576,
 }
