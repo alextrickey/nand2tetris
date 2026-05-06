@@ -116,13 +116,14 @@ class Parser:
             txt = utils.remove_whitespace(txt)
             if utils.is_empty_string(txt):
                 continue
-            else:
-                self.commands.append({
-                    'command':txt, 
-                    'source_line':l, 
-                    'rom_address': rom_address, 
-                    'command_type': self.command_type(txt)
-                    })
+            command_type = self.command_type(txt)
+            self.commands.append({
+                'command':txt, 
+                'source_line':l, 
+                'rom_address': rom_address, 
+                'command_type': command_type
+                })
+            if command_type != 'LABEL_CMD':
                 rom_address += 1
     
     def update_labels(self):
@@ -227,7 +228,8 @@ if __name__ == "__main__":
 
     # Initialize CLI and Get Args
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename")
+    parser.add_argument('filename')
+    parser.add_argument('-d', '--debug', action='store_true')
     args = parser.parse_args()
 
     # Initialize Symbols Table
@@ -238,5 +240,4 @@ if __name__ == "__main__":
     
     # Define Codes and Write to Hack File
     encoder = Code(parser=parser)
-    encoder.write_codes(debug=False)
-
+    encoder.write_codes(debug=args.debug)
