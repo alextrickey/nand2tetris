@@ -18,7 +18,7 @@ COMMENT = r"//"
 # Label Command Regex
 # Labels must start with a letter and contain only letters, digits, and underscores
 # Labels are created with parentheses (just before the relevant line)
-LABEL = r"[a-zA-Z]+[a-zA-Z_\d]*\w*"  
+LABEL = r"[a-zA-Z]+[a-zA-Z_.$\d]*\w*"  
 LABEL_CMD = r"^\(" + LABEL + r"\)$"
 
 # Address Command Regex
