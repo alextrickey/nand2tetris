@@ -27,7 +27,6 @@ INT_ADDRESS_CMD = r"^\@(\d+)$"
 VAR_ADDRESS_CMD = r"^\@(" + LABEL + r")$"
 ADDRESS_CMD = r"^\@((\d+)|(" + LABEL + r"))$"  
 
-
 # Compute Command Regex ("Destination=Result;Jump")
 DESTINATION = r"^([AMD]+=)"
 
@@ -60,19 +59,71 @@ JUMP = (r"((" +
 COMPUTE_CMD = DESTINATION + r"?" + RESULT + JUMP + r"?"
 
 class SymbolTable:
-    def __init__(self, ram_start: int = constants.RAM_START):
-        
-        self.ram_start = ram_start
-        self.ram_symbols = {s: a for s,a in constants.RAM_SYMBOLS.items()}
-        self.mmio_symbols = {s: a for s,a in constants.MEM_MAPPED_IO_SYMBOLS.items()}
-        self.next_ram_address = max(self.ram_symbols.values()) + 1
+    """
+    Class holding symbol-address mappings and methods to insert, 
+    retrieve and check the existence of mappings. 
 
-        self.symbols = {**self.ram_symbols, **self.mmio_symbols}
+    Attributes
+    ----------
+    symbols : dict
+        The mapping of text label/variable names (keys) to integer
+        ROM/RAM locations (values).
+
+    Methods
+    -------
+    symbol_exists(symbol: str)
+        Returns True if the symbol is already in the dict, otherwise
+        returns False.
+    insert(self, symbol: str, address:  Optional[int] = None)
+        Add the specified symbol to the mapping with the provided 
+        address if present, otherwise the next available memory location 
+        is used. 
+    get_address(self, symbol: str)
+        Lookup the address for the provided symbol and if none exists 
+        create a new address at the next available location in RAM. 
+
+    """
+    def __init__(self):
+        self._ram_symbols = {s: a for s,a in constants.RAM_SYMBOLS.items()}
+        self._mmio_symbols = {s: a for s,a in constants.MEM_MAPPED_IO_SYMBOLS.items()}
+        self.next_ram_address = max(self._ram_symbols.values()) + 1
+        self.symbols = {**self._ram_symbols, **self._mmio_symbols}
 
     def symbol_exists(self, symbol: str):
+        """Looks up the specified symbol in the table and returns True if the 
+        symbol is present, otherwise returns False.
+        
+        Parameters
+        ----------
+        symbol : str 
+            Name of the variable or label to be checked
+
+        Returns
+        ----------
+        bool
+            True if the symbol is present, otherwise False
+        """
         return symbol in self.symbols.keys()
 
     def insert(self, symbol: str, address:  Optional[int] = None):
+        """Add the specified symbol to the mapping with the provided 
+        address if present, otherwise the next available memory location 
+        is used. 
+        
+        Parameters
+        ----------
+        symbol : str 
+            Name of the variable or label to be added
+        address : Optional[int] 
+            The integer value of the memory location to associate with 
+            the new symbol. If None is provided, the address will be 
+            set to the next available RAM location. 
+            
+        Raises
+        ------
+        Exception
+            If the symbol to be added is already in the mapping.
+        """
         if symbol in self.symbols.keys():
             raise Exception(f"Symbol '{symbol}' previously defined.")
 
@@ -83,6 +134,20 @@ class SymbolTable:
             self.next_ram_address += 1
 
     def get_address(self, symbol: str):
+        """Add the specified symbol to the mapping with the provided 
+        address if present, otherwise the next available memory location 
+        is used. 
+        
+        Parameters
+        ----------
+        symbol : str 
+            Name of the variable or label
+            
+        Returns
+        ------
+        int
+            The address of RAM location assigned to the provided symbol
+        """
         if self.symbol_exists(symbol):
             return self.symbols[symbol]
         else: 
