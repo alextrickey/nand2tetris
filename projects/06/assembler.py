@@ -94,10 +94,10 @@ class Parser:
         self.extract_io_filenames(filename)
         with open(filename) as f:
             self.filelines = f.readlines()
-        self.commands = []
+        self.find_commands()
         self.symbols = symbols
         if self.symbols:
-            self.find_rom_commands()
+            self.update_labels()
             self.resolve_addresses()
     
     def extract_io_filenames(self, filename):
@@ -107,24 +107,33 @@ class Parser:
         self.infile = filename
         self.outfile = filename[:-4] + OUTPUT_FILE_EXTENTION
 
-    def find_rom_commands(self):
+    def find_commands(self):
+        self.commands = []
         rom_address=0
-        for l in self.filelines:
-            c = self._remove_comments(l)
-            c = utils.remove_whitespace(c)
-            if utils.is_empty_string(c):
-                continue
-            if self.is_label_cmd(c):
-                self.symbols.insert(c[1:-1], rom_address)
+        for l in range(len(self.filelines)):
+            txt = self.filelines[l]
+            txt = self._remove_comments(txt)
+            txt = utils.remove_whitespace(txt)
+            if utils.is_empty_string(txt):
                 continue
             else:
-                self.commands.append(c)
+                self.commands.append({
+                    'command':txt, 
+                    'source_line':l, 
+                    'rom_address': rom_address, 
+                    'command_type': self.command_type(txt)
+                    })
                 rom_address += 1
     
+    def update_labels(self):
+        for entry in self.commands:
+            if entry['command_type'] == 'LABEL_CMD':
+                self.symbols.insert(entry['command'][1:-1], entry['rom_address'])
+
     def resolve_addresses(self):
-        for c in self.commands:
-            if self.is_address_cmd(c):
-                self.parse_address_cmd(c)
+        for entry in self.commands:
+            if entry['command_type'] == 'ADDRESS_CMD':
+                self.parse_address_cmd(entry['command'])
 
     def is_label_cmd(self, command: str):
         match = re.search(LABEL_CMD, command)
@@ -178,15 +187,19 @@ class Code:
     def __init__(self, parser: type[Parser]):
         self.parser = parser
         self.codes = []
-        for command in parser.commands:
-            command_type = parser.command_type(command)
+        for entry in parser.commands:
+            command = entry['command']
+            command_type = entry['command_type']
             if command_type == 'ADDRESS_CMD':
                 code = self.make_address_cmd_binary(command)
             elif command_type == 'COMPUTE_CMD':
                 code = self.make_compute_cmd_binary(command)
+            elif command_type == 'LABEL_CMD':
+                continue
             else:
-                raise Exception(f"Unable to encode '{command}' with type '{command_type}'.")
-            self.codes.append(code)
+                raise Exception(f"Unable to encode line {entry['source_line']} ('{command}') as '{command_type}'.")
+            entry['code'] = code
+            self.codes.append(entry)
 
     def make_address_cmd_binary(self, command):
         name, address = self.parser.parse_address_cmd(command)
@@ -199,12 +212,15 @@ class Code:
         jump_bin_str = constants.JUMP_MNEMONICS[jump]
         return '111' + comp_bin_str + dest_bin_str + jump_bin_str
     
-    def write_codes(self):
+    def write_codes(self, debug=False):
         with open(self.parser.outfile, 'w') as f:
-            f.write(self.codes[0])
-            for c in self.codes[1:]: 
-                f.write('\n' + c)
-
+            f.write(self.codes[0]['code'])
+            for entry in self.codes[1:]: 
+                f.write('\n' + entry['code'])
+        if debug:
+            with open('debug_' + self.parser.outfile, 'w') as f:
+                for entry in self.codes: 
+                    f.write(str(entry) + '\n')
 
 
 if __name__ == "__main__":
@@ -222,5 +238,5 @@ if __name__ == "__main__":
     
     # Define Codes and Write to Hack File
     encoder = Code(parser=parser)
-    encoder.write_codes()
+    encoder.write_codes(debug=False)
 
