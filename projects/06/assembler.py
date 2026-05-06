@@ -7,6 +7,10 @@ from typing import Optional
 import utils
 import constants
 
+# Filen Extentions  
+INPUT_FILE_EXTENTION = ".asm"
+OUTPUT_FILE_EXTENTION = ".hack"
+
 # Comment Regex
 # Comments are created by two forward slashes and all text after will be ignored
 COMMENT = r"//"  
@@ -87,6 +91,7 @@ class SymbolTable:
 
 class Parser:
     def __init__(self, filename: str, symbols: type[SymbolTable] = None):
+        self.extract_io_filenames(filename)
         with open(filename) as f:
             self.filelines = f.readlines()
         self.commands = []
@@ -94,7 +99,14 @@ class Parser:
         if self.symbols:
             self.find_rom_commands()
             self.resolve_addresses()
-        
+    
+    def extract_io_filenames(self, filename):
+        match = re.search(INPUT_FILE_EXTENTION + '$', filename)
+        if not match:
+            raise IOError(f"Input filename must be an assembly file ending in '{INPUT_FILE_EXTENTION}' .")
+        self.infile = filename
+        self.outfile = filename[:-4] + OUTPUT_FILE_EXTENTION
+
     def find_rom_commands(self):
         rom_address=0
         for l in self.filelines:
@@ -186,6 +198,13 @@ class Code:
         comp_bin_str = constants.COMP_MNEMONICS[comp]
         jump_bin_str = constants.JUMP_MNEMONICS[jump]
         return '111' + comp_bin_str + dest_bin_str + jump_bin_str
+    
+    def write_codes(self):
+        with open(self.parser.outfile, 'w') as f:
+            f.write(self.codes[0])
+            for c in self.codes[1:]: 
+                f.write('\n' + c)
+
 
 
 if __name__ == "__main__":
@@ -198,12 +217,10 @@ if __name__ == "__main__":
     # Initialize Symbols Table
     symbol_table = SymbolTable()
 
-    # Initialize Parser and Find Commands
+    # Build Parser
     parser = Parser(filename=args.filename, symbols=symbol_table)
+    
+    # Define Codes and Write to Hack File
     encoder = Code(parser=parser)
-
-    for i in range(len(parser.commands)):
-        print(parser.commands[i])
-        print(encoder.codes[i])
-        print('\n')
+    encoder.write_codes()
 

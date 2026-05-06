@@ -74,7 +74,7 @@ COMP_MNEMONICS = {
 ######################
 # Predefined Symbols #
 ######################
-RAM_START = 1024
+RAM_START = 0
 MAX_BITS = 15
 
 RAM_SYMBOLS = {
