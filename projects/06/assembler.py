@@ -106,6 +106,7 @@ class Parser:
             raise IOError(f"Input filename must be an assembly file ending in '{INPUT_FILE_EXTENTION}' .")
         self.infile = filename
         self.outfile = filename[:-4] + OUTPUT_FILE_EXTENTION
+        self.debugfile = filename[:-4] + '_debug' + OUTPUT_FILE_EXTENTION
 
     def find_commands(self):
         self.commands = []
@@ -135,25 +136,13 @@ class Parser:
         for entry in self.commands:
             if entry['command_type'] == 'ADDRESS_CMD':
                 self.parse_address_cmd(entry['command'])
-
-    def is_label_cmd(self, command: str):
-        match = re.search(LABEL_CMD, command)
-        return True if match else False
-
-    def is_address_cmd(self, command: str):
-        match = re.search(ADDRESS_CMD, command)
-        return True if match else False
-    
-    def is_compute_cmd(self, command: str):
-        match = re.search(COMPUTE_CMD, command)
-        return True if match else False
     
     def command_type(self, command: str):
-        if self.is_label_cmd(command):
+        if re.search(LABEL_CMD, command):
             return "LABEL_CMD"
-        if self.is_address_cmd(command):
+        if re.search(ADDRESS_CMD, command):
             return "ADDRESS_CMD"
-        elif self.is_compute_cmd(command):
+        elif re.search(COMPUTE_CMD, command):
             return "COMPUTE_CMD"
         else: 
             raise SyntaxError(f"Unrecognized command format: '{command}'")
@@ -219,7 +208,7 @@ class Code:
             for entry in self.codes[1:]: 
                 f.write('\n' + entry['code'])
         if debug:
-            with open('debug_' + self.parser.outfile, 'w') as f:
+            with open(self.parser.debugfile, 'w') as f:
                 for entry in self.codes: 
                     f.write(str(entry) + '\n')
 
