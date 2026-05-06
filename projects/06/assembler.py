@@ -70,7 +70,7 @@ class SymbolTable:
 
     def insert(self, symbol: str, address:  Optional[int] = None):
         if symbol in self.symbols.keys():
-            raise SyntaxError(f"Symbol '{symbol}' previously defined.")
+            raise Exception(f"Symbol '{symbol}' previously defined.")
 
         if address: 
             self.symbols[symbol]=address
@@ -112,7 +112,7 @@ class Parser:
     def resolve_addresses(self):
         for c in self.commands:
             if self.is_address_cmd(c):
-                self.parse_address(c)
+                self.parse_address_cmd(c)
 
     def is_label_cmd(self, command: str):
         match = re.search(LABEL_CMD, command)
@@ -122,6 +122,20 @@ class Parser:
         match = re.search(ADDRESS_CMD, command)
         return True if match else False
     
+    def is_compute_cmd(self, command: str):
+        match = re.search(COMPUTE_CMD, command)
+        return True if match else False
+    
+    def command_type(self, command: str):
+        if self.is_label_cmd(command):
+            return "LABEL_CMD"
+        if self.is_address_cmd(command):
+            return "ADDRESS_CMD"
+        elif self.is_compute_cmd(command):
+            return "COMPUTE_CMD"
+        else: 
+            raise SyntaxError(f"Unrecognized command format: '{command}'")
+
     def parse_address_cmd(self, command: str):
         match = re.search(INT_ADDRESS_CMD, command)
         if match: 
@@ -133,33 +147,45 @@ class Parser:
     def _remove_comments(self, line: str):
         return re.split(COMMENT, line, maxsplit=1)[0]
 
-    def parse_compute_command():
-        pass
-
-    def parse_address_command(command, symbol_table):
-        pass
+    def parse_compute_cmd(self, command):
+        dest = None
+        jump = None
+        match = re.search(DESTINATION, command)
+        if match: 
+            dest = command[match.start():match.end()-1]
+            command = command[match.end():]
+        match = re.search(JUMP, command)
+        if match: 
+            jump = command[match.start()+1:]
+            command = command[:match.start()]
+        comp = command
+        return dest, comp, jump
 
 
 class Code:
-    def __init__(self, parser: type[Parser], symboltable: type[SymbolTable]):
+    def __init__(self, parser: type[Parser]):
         self.parser = parser
-        self.dests = constants.DEST_MNEMONICS
-        self.jumps = constants.JUMP_MNEMONICS
-        self.codes = constants.CODE_MNEMONICS
+        self.codes = []
+        for command in parser.commands:
+            command_type = parser.command_type(command)
+            if command_type == 'ADDRESS_CMD':
+                code = self.make_address_cmd_binary(command)
+            elif command_type == 'COMPUTE_CMD':
+                code = self.make_compute_cmd_binary(command)
+            else:
+                raise Exception(f"Unable to encode '{command}' with type '{command_type}'.")
+            self.codes.append(code)
 
-    def make_binary(self, command):
-        self.get_dest_code()
-        self.get_comp_code()
-        self.get_jump_code()
-    
-    def get_dest_code(self):
-        pass
+    def make_address_cmd_binary(self, command):
+        name, address = self.parser.parse_address_cmd(command)
+        return '0' + utils.binary_string_from_int(address, binary_width=constants.MAX_BITS)
 
-    def get_comp_code():
-        pass
-
-    def get_jump_code():
-        pass
+    def make_compute_cmd_binary(self, command):
+        dest, comp, jump = self.parser.parse_compute_cmd(command)
+        dest_bin_str = constants.DEST_MNEMONICS[dest]
+        comp_bin_str = constants.COMP_MNEMONICS[comp]
+        jump_bin_str = constants.JUMP_MNEMONICS[jump]
+        return '111' + comp_bin_str + dest_bin_str + jump_bin_str
 
 
 if __name__ == "__main__":
@@ -170,26 +196,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Initialize Symbols Table
-    s = SymbolTable()
+    symbol_table = SymbolTable()
 
     # Initialize Parser and Find Commands
-    p = Parser(args.filename, s)
+    parser = Parser(filename=args.filename, symbols=symbol_table)
+    encoder = Code(parser=parser)
 
-    c = Code(parser=p, symboltable=s)
-
-    for c in p.commands:
-        print(c)
-        if p.is_address_cmd(c):
-             n, a = p.parse_address(c)
-             print(n, a)
+    for i in range(len(parser.commands)):
+        print(parser.commands[i])
+        print(encoder.codes[i])
         print('\n')
-        #ct = p.command_type(c)
-        #if ct == 'C_COMMAND':
-        #    d = p.get_destinations(c)
-        #    j = p.get_jump(c)
-        #else: 
-        #    d=''
-        #    j=''
-        #print(c, ct, d, j)
 
-    print(s.symbols)

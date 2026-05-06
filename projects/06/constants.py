@@ -22,6 +22,8 @@ DEST_MNEMONICS = {
     'A': '100',
     'M': '001',
     'D': '010',
+
+    None: '000'
 }
 
 
@@ -38,7 +40,7 @@ JUMP_MNEMONICS = {
 }
 
 # Format:   'acccccc'
-CODE_MNEMONICS = {
+COMP_MNEMONICS = {
     '0':    '0101010',
     '1':    '0111111',
     '-1':   '0111010',
@@ -73,6 +75,7 @@ CODE_MNEMONICS = {
 # Predefined Symbols #
 ######################
 RAM_START = 1024
+MAX_BITS = 15
 
 RAM_SYMBOLS = {
     'SP':     RAM_START + 0,
