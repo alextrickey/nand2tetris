@@ -523,10 +523,10 @@ class Code:
 if __name__ == "__main__":
 
     # Initialize CLI and Get Args
-    parser = argparse.ArgumentParser()
-    parser.add_argument('filepath')
-    parser.add_argument('-d', '--debug', action='store_true')
-    args = parser.parse_args()
+    cli_arg_parser = argparse.ArgumentParser()
+    cli_arg_parser.add_argument('filepath')
+    cli_arg_parser.add_argument('-d', '--debug', action='store_true')
+    args = cli_arg_parser.parse_args()
 
     # Initialize Symbols Table
     symbol_table = SymbolTable()
