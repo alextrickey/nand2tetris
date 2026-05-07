@@ -168,15 +168,11 @@ class Parser:
     ----------
     input_filepath : str
         The filepath of the input file
-    output_filepath : str
-        The filepath of the output file
-    debug_filepath : str
-        The filepath of an optional file containing debugging data 
     symbols : SymbolTable
         Instance of the SymbolTable class to contain default and
         file-specific symbols, variable names, labels and their
         corresponding addresses
-    commands : dict
+    commands : List[dict]
         A list of dicts containing data about each line of the input
         that contains a meaningful command. The dict has the following
         keys: 
@@ -222,8 +218,6 @@ class Parser:
         # Check and Set Filepath Attributes
         self._check_file_type(filepath)
         self.input_filepath = filepath
-        self.output_filepath = filepath[:-4] + OUTPUT_FILE_EXTENTION
-        self.debug_filepath = filepath[:-4] + '_debug' + OUTPUT_FILE_EXTENTION
 
         # Read input file and find commands
         with open(filepath) as f:
@@ -357,7 +351,7 @@ class Parser:
         if match:
             return command[1:], self.symbols.get_address(command[1:])
 
-    def parse_compute_cmd(self, command):
+    def parse_compute_cmd(self, command: str):
         """Returns the destination (dest), computation (comp) and jump condition 
         segments of an compute command (with format: 'dest=comp;jump')
 
@@ -398,8 +392,60 @@ class Parser:
 
 
 class Code:
+    """
+    Class to use parser to assemble the binaries of commands in the parsed 
+    file
+
+    Attributes
+    ----------
+    output_filepath : str
+        The filepath of the output file
+    debug_filepath : str
+        The filepath of an optional file containing debugging data 
+    parser : Parser
+        Instance of the Parser class cotaining the parsed input file
+    codes : List[dict]
+        A list of dicts containing the new binary codes (key: code) for each 
+        command from the input file and additional command data fields passed 
+        from the parser. 
+
+    Methods
+    -------
+    make_address_cmd_binary(self, command: str)
+        Calls the parser to get the address of an address command then 
+        converts the address to an addressing binary command
+    make_compute_cmd_binary(self, command: str)
+        Calls the parser to break a compute command into the destination 
+        (dest), computation (comp) and jump segments, then looks up and 
+        assembles their corresponding binaries.
+    write_codes(self, debug: Optional[bool] = False)
+        Writes the assembled binary commands to the output file and some
+        additional command data to the the debugging output file if that is 
+        requested.
+
+    """
     def __init__(self, parser: type[Parser]):
+        """Sets the parser, output_file, and debug_file attributes then 
+        calls methods to compute binaries for each parsed command and stores
+        these in the codes attribute. 
+
+        Parameters
+        ----------
+        command : str 
+            An address command (type 'ADDRESS_CMD') from the input file 
+            
+        Raises
+        ------
+        Exception 
+            If the command type is not recognized
+        """
         self.parser = parser
+
+        self.output_filepath = (
+            self.parser.input_filepath[:-4] + OUTPUT_FILE_EXTENTION)
+        self.debug_filepath = (
+            self.parser.input_filepath[:-4] + '_debug' + OUTPUT_FILE_EXTENTION)
+
         self.codes = []
         for entry in parser.commands:
             command = entry['command']
@@ -411,28 +457,65 @@ class Code:
             elif command_type == 'LABEL_CMD':
                 continue
             else:
-                raise Exception(f"Unable to encode line {entry['source_line']} ('{command}') as '{command_type}'.")
+                raise Exception(f"Unable to encode '{command}' as '{command_type}'.")
             entry['code'] = code
             self.codes.append(entry)
 
-    def make_address_cmd_binary(self, command):
+    def make_address_cmd_binary(self, command: str):
+        """Calls the parser to get the address of an address command then 
+        converts the address to an addressing binary command
+
+        Parameters
+        ----------
+        command : str 
+            An address command (type 'ADDRESS_CMD') from the input file 
+            
+        Returns
+        ------
+        str
+            The binary command for the address represented with a string
+        """
         name, address = self.parser.parse_address_cmd(command)
         return '0' + utils.binary_string_from_int(address, binary_width=constants.MAX_BITS)
 
-    def make_compute_cmd_binary(self, command):
+    def make_compute_cmd_binary(self, command: str):
+        """Calls the parser to break a compute command into the destination 
+        (dest), computation (comp) and jump segments, then looks up and 
+        assembles their corresponding binaries.
+
+        Parameters
+        ----------
+        command : str 
+            A compute command (type 'COMPUTE_CMD') from the input file
+            
+        Returns
+        ------
+        str
+            The corresponding binary command for the specified computation
+        """
+        
         dest, comp, jump = self.parser.parse_compute_cmd(command)
         dest_bin_str = constants.DEST_MNEMONICS[dest]
         comp_bin_str = constants.COMP_MNEMONICS[comp]
         jump_bin_str = constants.JUMP_MNEMONICS[jump]
         return '111' + comp_bin_str + dest_bin_str + jump_bin_str
     
-    def write_codes(self, debug=False):
-        with open(self.parser.output_filepath, 'w') as f:
+    def write_codes(self, debug: Optional[bool] = False):
+        """Writes the assembled binary commands to the output file and some
+        additional command data to the the debugging output file if that is 
+        requested.
+
+        Parameters
+        ----------
+        debug : Optional[bool] 
+            Writes the debugging file if set to True, [default: False]
+        """
+        with open(self.output_filepath, 'w') as f:
             f.write(self.codes[0]['code'])
             for entry in self.codes[1:]: 
                 f.write('\n' + entry['code'])
         if debug:
-            with open(self.parser.debug_filepath, 'w') as f:
+            with open(self.debug_filepath, 'w') as f:
                 for entry in self.codes: 
                     f.write(str(entry) + '\n')
 
