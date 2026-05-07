@@ -7,7 +7,7 @@ from typing import Optional
 import utils
 import constants
 
-# Filen Extentions  
+# File Extentions  
 INPUT_FILE_EXTENTION = ".asm"
 OUTPUT_FILE_EXTENTION = ".hack"
 
@@ -68,6 +68,8 @@ class SymbolTable:
     symbols : dict
         The mapping of text label/variable names (keys) to integer
         ROM/RAM locations (values).
+    next_ram_address : int
+        The address representing the next available/unused RAM location
 
     Methods
     -------
@@ -84,6 +86,8 @@ class SymbolTable:
 
     """
     def __init__(self):
+        """Initializes the symbol mapping using defaults for RAM and Memory Mapped IO 
+         devices. Sets the next available RAM address."""
         self._ram_symbols = {s: a for s,a in constants.RAM_SYMBOLS.items()}
         self._mmio_symbols = {s: a for s,a in constants.MEM_MAPPED_IO_SYMBOLS.items()}
         self.next_ram_address = max(self._ram_symbols.values()) + 1
@@ -108,7 +112,7 @@ class SymbolTable:
     def insert(self, symbol: str, address:  Optional[int] = None):
         """Add the specified symbol to the mapping with the provided 
         address if present, otherwise the next available memory location 
-        is used. 
+        is used.
         
         Parameters
         ----------
@@ -155,25 +159,106 @@ class SymbolTable:
 
 
 class Parser:
-    def __init__(self, filename: str, symbols: type[SymbolTable] = None):
-        self.extract_io_filenames(filename)
-        with open(filename) as f:
+    """
+    Class to process syntax in an assembly file to identify commands, 
+    map symbols to addresses, determine parts of computations and 
+    raise errors if malformed codes are provided.
+
+    Attributes
+    ----------
+    input_filepath : str
+        The filepath of the input file
+    output_filepath : str
+        The filepath of the output file
+    debug_filepath : str
+        The filepath of an optional file containing debugging data 
+    symbols : SymbolTable
+        Instance of the SymbolTable class to contain default and
+        file-specific symbols, variable names, labels and their
+        corresponding addresses
+    commands : dict
+        A list of dicts containing data about each line of the input
+        that contains a meaningful command. The dict has the following
+        keys: 
+            command: Text of the command without comments/whitespase 
+            source_line: The line number of the command in the input file
+            rom_address: The line number that will represent the command 
+                in the output file
+            command_type: String indicating the type of the command
+                LABEL_CMD: Provides a new label via '(LABEL_NAME)'
+                ADDRESS_CMD: Sets A to an address via '@ADDRESS' or '@SYMBOL'
+                COMPUTE_CMD: Indicates a computation with an optional 
+                    destination and jump condition via: 'dest=computation;jump'
+
+    Methods
+    -------
+    symbol_exists(symbol: str)
+        Returns True if the symbol is already in the dict, otherwise
+        returns False.
+    insert(self, symbol: str, address:  Optional[int] = None)
+        Add the specified symbol to the mapping with the provided 
+        address if present, otherwise the next available memory location 
+        is used. 
+    get_address(self, symbol: str)
+        Lookup the address for the provided symbol and if none exists 
+        create a new address at the next available location in RAM. 
+
+    """
+    def __init__(self, filepath: str, symbols: type[SymbolTable] = None):
+        """Checks the filepath, sets the input, output and debugging
+        filepaths, then parses the lines of input file into commands and 
+        symbols.
+        
+        Parameters
+        ----------
+        filepath : str 
+            Filepath of the input file including the filename and extention
+            
+        Raises
+        ------
+        Exception
+            If the file does not have the correct assembly extention ('.a).
+        """
+        # Check and Set Filepath Attributes
+        self._check_file_type(filepath)
+        self.input_filepath = filepath
+        self.output_filepath = filepath[:-4] + OUTPUT_FILE_EXTENTION
+        self.debug_filepath = filepath[:-4] + '_debug' + OUTPUT_FILE_EXTENTION
+
+        # Read input file and find commands
+        with open(filepath) as f:
             self.filelines = f.readlines()
-        self.find_commands()
+        self._find_commands()
+
+        # Process symbols for labels/variables
         self.symbols = symbols
         if self.symbols:
-            self.update_labels()
-            self.resolve_addresses()
+            self._update_labels()
+            self._resolve_addresses()
     
-    def extract_io_filenames(self, filename):
-        match = re.search(INPUT_FILE_EXTENTION + '$', filename)
+    def _check_file_type(self, filepath):
+        """Ensures that the file path includes path extention
+        
+        Parameters
+        ----------
+        filepath : str 
+            Filepath with filename (including extention)
+            
+        Raises
+        ------
+        Exception
+            If the file is not assembly or doesn't have the correct extention.
+        """
+        match = re.search(INPUT_FILE_EXTENTION + '$', filepath)
         if not match:
-            raise IOError(f"Input filename must be an assembly file ending in '{INPUT_FILE_EXTENTION}' .")
-        self.infile = filename
-        self.outfile = filename[:-4] + OUTPUT_FILE_EXTENTION
-        self.debugfile = filename[:-4] + '_debug' + OUTPUT_FILE_EXTENTION
+            raise Exception(f"Input filename must be an assembly file ending in "
+                          f"'{INPUT_FILE_EXTENTION}' .")
 
-    def find_commands(self):
+    def _find_commands(self):
+        """Processes the input into commands by stripping comments, 
+        whitespace and empty lines, then determines the type of command, 
+        counts relevant ROM commands and logs these in the commands dict
+        """
         self.commands = []
         rom_address=0
         for l in range(len(self.filelines)):
@@ -192,17 +277,52 @@ class Parser:
             if command_type != 'LABEL_CMD':
                 rom_address += 1
     
-    def update_labels(self):
+    def _remove_comments(self, line: str):
+        """Removes comments which may be whole lines or at the end of a line
+
+        Parameters
+        ----------
+        line : str 
+            The current line of text from the input file to be processed
+            
+        Returns
+        ------
+        str
+            The line of text without any text occurring after the comment 
+            characters
+        """
+        return re.split(COMMENT, line, maxsplit=1)[0]
+        
+    def _update_labels(self):
+        """Adds new labels identified in the input file to the SymbolTable"""
         for entry in self.commands:
             if entry['command_type'] == 'LABEL_CMD':
                 self.symbols.insert(entry['command'][1:-1], entry['rom_address'])
 
-    def resolve_addresses(self):
+    def _resolve_addresses(self):
+        """Adds new variables identified in the input file to the SymbolTable
+        by setting the address to the next available RAM location (if none exists 
+        from defaults or provided labels)"""
         for entry in self.commands:
             if entry['command_type'] == 'ADDRESS_CMD':
                 self.parse_address_cmd(entry['command'])
     
     def command_type(self, command: str):
+        """Returns the type of command 
+
+        Parameters
+        ----------
+        command : str 
+            A command identified from the input file
+            
+        Returns
+        ------
+        str
+            LABEL_CMD if the command has format: '(LABEL_NAME)'
+            ADDRESS_CMD if the command has format: '@ADDRESS' or '@SYMBOL'
+            COMPUTE_CMD if the comment specifies a computation of form
+                'dest=computation;jump' where dest and jump are optional
+        """
         if re.search(LABEL_CMD, command):
             return "LABEL_CMD"
         if re.search(ADDRESS_CMD, command):
@@ -213,6 +333,23 @@ class Parser:
             raise SyntaxError(f"Unrecognized command format: '{command}'")
 
     def parse_address_cmd(self, command: str):
+        """Returns the label/variable name and the address of an address 
+        command
+
+        Parameters
+        ----------
+        command : str 
+            A address command (type: 'ADDRESS_CMD') from the input file 
+            
+        Returns
+        ------
+        name : str
+            The text of the label, variable name or raw address in the 
+            command. 
+        address : int
+            The address retrieved from the SymbolTable or the raw 
+            address if provided
+        """
         match = re.search(INT_ADDRESS_CMD, command)
         if match: 
             return command[1:], int(command[1:])
@@ -220,10 +357,32 @@ class Parser:
         if match:
             return command[1:], self.symbols.get_address(command[1:])
 
-    def _remove_comments(self, line: str):
-        return re.split(COMMENT, line, maxsplit=1)[0]
-
     def parse_compute_cmd(self, command):
+        """Returns the destination (dest), computation (comp) and jump condition 
+        segments of an compute command (with format: 'dest=comp;jump')
+
+        Parameters
+        ----------
+        command : str 
+            A compute command (type 'COMPUTE_CMD') from the input file 
+            
+        Returns
+        ------
+        dest : str
+            The text preceding the '=' indicating which registers or memory
+            locations to store the result. The destinations may include various 
+            combinations of A, D or M. If no destination is present in the 
+            command None is returned. 
+        comp : str
+            The text indicating what computation should be completed. For 
+            possible computations, see constants.COMP_MNEMONICS. 
+            Computation commands must contain comp text, so this cannot be 
+            None. 
+        jump : str
+            The text after the ';' indicating under what conditions a jump 
+            should occur. For possible values, see constants.JUMP_MNEMONICS. 
+            If no jump condition is present in the command None is returned. 
+        """
         dest = None
         jump = None
         match = re.search(DESTINATION, command)
@@ -268,12 +427,12 @@ class Code:
         return '111' + comp_bin_str + dest_bin_str + jump_bin_str
     
     def write_codes(self, debug=False):
-        with open(self.parser.outfile, 'w') as f:
+        with open(self.parser.output_filepath, 'w') as f:
             f.write(self.codes[0]['code'])
             for entry in self.codes[1:]: 
                 f.write('\n' + entry['code'])
         if debug:
-            with open(self.parser.debugfile, 'w') as f:
+            with open(self.parser.debug_filepath, 'w') as f:
                 for entry in self.codes: 
                     f.write(str(entry) + '\n')
 
@@ -282,7 +441,7 @@ if __name__ == "__main__":
 
     # Initialize CLI and Get Args
     parser = argparse.ArgumentParser()
-    parser.add_argument('filename')
+    parser.add_argument('filepath')
     parser.add_argument('-d', '--debug', action='store_true')
     args = parser.parse_args()
 
@@ -290,7 +449,7 @@ if __name__ == "__main__":
     symbol_table = SymbolTable()
 
     # Build Parser
-    parser = Parser(filename=args.filename, symbols=symbol_table)
+    parser = Parser(filepath=args.filepath, symbols=symbol_table)
     
     # Define Codes and Write to Hack File
     encoder = Code(parser=parser)
