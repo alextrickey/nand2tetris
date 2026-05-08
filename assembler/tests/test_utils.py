@@ -13,13 +13,8 @@ class TestUtils(unittest.TestCase):
     
     def test_is_empty_string(self):
 
-        actual = utils.is_empty_string(line='')
-        expect = True
-        self.assertEqual(actual, expect, "Observed: {actual}, Expected: {expect}")
-
-        actual = utils.is_empty_string(line=' ')
-        expect = False
-        self.assertEqual(actual, expect, "Observed: {actual}, Expected: {expect}")
+        self.assertTrue(utils.is_empty_string(line=''))
+        self.assertFalse(utils.is_empty_string(line=' '))
     
     def test_regex_any(self):
 
