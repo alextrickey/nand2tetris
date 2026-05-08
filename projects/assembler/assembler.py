@@ -156,6 +156,7 @@ class SymbolTable:
             return self.symbols[symbol]
         else: 
             self.insert(symbol)
+            return self.symbols[symbol]
 
 
 class Parser:
