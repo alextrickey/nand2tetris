@@ -189,16 +189,14 @@ class Parser:
 
     Methods
     -------
-    symbol_exists(symbol: str)
-        Returns True if the symbol is already in the dict, otherwise
-        returns False.
-    insert(self, symbol: str, address:  Optional[int] = None)
-        Add the specified symbol to the mapping with the provided 
-        address if present, otherwise the next available memory location 
-        is used. 
-    get_address(self, symbol: str)
-        Lookup the address for the provided symbol and if none exists 
-        create a new address at the next available location in RAM. 
+    command_type(command: str)
+        Returns the type of command 
+    parse_address_cmd(command: str):
+        Returns the label/variable name and the address of an address 
+        command
+    parse_compute_cmd(command: str):
+        Returns the destination (dest), computation (comp) and jump condition 
+        segments of an compute command (with format: 'dest=comp;jump')
 
     """
     def __init__(self, filepath: str, symbols: type[SymbolTable] = None):
@@ -423,7 +421,6 @@ class Code:
         Writes the assembled binary commands to the output file and some
         additional command data to the the debugging output file if that is 
         requested.
-
     """
     def __init__(self, parser: type[Parser]):
         """Sets the parser, output_file, and debug_file attributes then 
