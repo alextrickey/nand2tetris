@@ -3,83 +3,156 @@ import assembler
 
 
 class TestSymbolTable(unittest.TestCase):
-
+    def __init__(self):
+        self.symbol_table = assembler.SymbolTable()
     
-    def test_symbol_table(self):
-        symbol_table = assembler.SymbolTable()
+    def test_default_symbols(self):
 
         # Check that some standard symbols are populated
-        self.assertIn('KBD', symbol_table.symbols.keys())
-        self.assertIn('SCREEN', symbol_table.symbols.keys())
-        self.assertIn('R0', symbol_table.symbols.keys())
-        self.assertIn('THAT', symbol_table.symbols.keys())
+        self.assertIn('KBD', self.symbol_table.symbols.keys())
+        self.assertIn('SCREEN', self.symbol_table.symbols.keys())
+        self.assertIn('R0', self.symbol_table.symbols.keys())
+        self.assertIn('THAT', self.symbol_table.symbols.keys())
 
-        # Check initial next RAM address
+    def test_initial_next_ram(self):
         initial_next_ram = 16
-        self.assertEqual(symbol_table.next_ram_address, initial_next_ram)
+        self.assertEqual(self.symbol_table.next_ram_address, initial_next_ram)
 
-        # Check symbol_exists
+    def test_symbol_exists(self):
         input_symbol = 'KBD'
-        self.assertTrue(symbol_table.symbol_exists(input_symbol))
+        self.assertTrue(self.symbol_table.symbol_exists(input_symbol))
         input_symbol = 'fake'
-        self.assertFalse(symbol_table.symbol_exists(input_symbol))
+        self.assertFalse(self.symbol_table.symbol_exists(input_symbol))
         input_symbol = None
-        self.assertFalse(symbol_table.symbol_exists(input_symbol))
+        self.assertFalse(self.symbol_table.symbol_exists(input_symbol))
 
-        # Check insert without address
+    def test_insertion(self):
+        initial_next_ram = 16
+
+        # Insertion without address
         new_symbol = 'new1'
         new_address = None
-        symbol_table.insert(symbol=new_symbol, address=new_address)
-        self.assertTrue(symbol_table.symbol_exists(new_symbol))
-        actual = symbol_table.symbols[new_symbol]
+        self.symbol_table.insert(symbol=new_symbol, address=new_address)
+        self.assertTrue(self.symbol_table.symbol_exists(new_symbol))
+        actual = self.symbol_table.symbols[new_symbol]
         expect = initial_next_ram 
         self.assertEqual(actual, expect)
 
-        # Check next RAM address after insert
+        # Next RAM address after insert
         new_next_ram = initial_next_ram + 1
-        self.assertEqual(symbol_table.next_ram_address, new_next_ram)
+        self.assertEqual(self.symbol_table.next_ram_address, new_next_ram)
 
-        # Check insert with given address
+        # Insertion with given address
         new_symbol = 'new2'
         new_address = 55
-        symbol_table.insert(symbol=new_symbol, address=new_address)
-        self.assertTrue(symbol_table.symbol_exists(new_symbol))
-        actual = symbol_table.symbols[new_symbol]
+        self.symbol_table.insert(symbol=new_symbol, address=new_address)
+        self.assertTrue(self.symbol_table.symbol_exists(new_symbol))
+        actual = self.symbol_table.symbols[new_symbol]
         expect = 55
         self.assertEqual(actual, expect)
         
-        # Check insert fails if symbol exists
+        # Insertion should fail if symbol exists
         with self.assertRaises(Exception):
             previously_defined_symbol = 'new2'
             another_address = 58
-            symbol_table.insert(symbol=previously_defined_symbol, 
+            self.symbol_table.insert(symbol=previously_defined_symbol, 
                                 address=another_address)
 
         # Current behavior is next RAM does not update in response to 
         # adding higher RAM address [Enhancement opportunity]
         new_next_ram = initial_next_ram + 1
-        self.assertEqual(symbol_table.next_ram_address, new_next_ram)
+        self.assertEqual(self.symbol_table.next_ram_address, new_next_ram)
 
-        # Check get address with existing symbol
+    def test_get_address(self):
+        # Get address with existing symbol
         existing_symbol = 'new1'
         expected_address = 16
-        actual_address = symbol_table.get_address(existing_symbol)
+        actual_address = self.symbol_table.get_address(existing_symbol)
         self.assertEqual(actual_address, expected_address)
 
-        # Check get address with non-existing symbol
+        # Get address with non-existing symbol
         non_existing_symbol = 'new3'
         expected_address = 17
-        actual_address = symbol_table.get_address(non_existing_symbol)
+        actual_address = self.symbol_table.get_address(non_existing_symbol)
         self.assertEqual(actual_address, expected_address)
-
 
 
 class TestParser(unittest.TestCase):
-    pass
+    def __init__(self):
+        self.symbol_table = assembler.SymbolTable()
+
+        # Build Parser
+        self.parser = assembler.Parser(
+            filepath='tests/fixtures/Rect.asm', 
+            symbols=self.symbol_table)
+
+    def test_output_paths(self):
+        # output_filepath : str
+        #     The filepath of the output file
+        # debug_filepath : str
+        #     The filepath of an optional file containing debugging data 
+        # parser : Parser
+        #     Instance of the Parser class cotaining the parsed input file
+        # codes : List[dict]
+        #     A list of dicts containing the new binary codes (key: code) for each 
+        #     command from the input file and additional command data fields passed 
+        #     from the parser. 
+
+        # Methods
+        # -------
+        # make_address_cmd_binary(self, command: str)
+        #     Calls the parser to get the address of an address command then 
+        #     converts the address to an addressing binary command
+        # make_compute_cmd_binary(self, command: str)
+        #     Calls the parser to break a compute command into the destination 
+        #     (dest), computation (comp) and jump segments, then looks up and 
+        #     assembles their corresponding binaries.
+        # write_codes(self, debug: Optional[bool] = False)
+        #     Writes the assembled binary commands to the output file and some
+        #     additional command data to the the debugging output file if that is 
+        #     requested.
 
 
 class TestCode(unittest.TestCase):
-    pass
+    def __init__(self):
+        pass
+        # self.symbol_table = assembler.SymbolTable()
+
+        # # Build Parser
+        # self.parser = assembler.Parser(
+        #     filepath='tests/fixtures/Rect.asm', 
+        #     symbols=self.symbol_table)
+        
+        # Define Codes and Write to Hack File
+        #encoder = assembler.Code(parser=parser)
+        #encoder.write_codes(debug=False)
+
+    def test_attributes(self):
+        pass
+        # output_filepath : str
+        #     The filepath of the output file
+        # debug_filepath : str
+        #     The filepath of an optional file containing debugging data 
+        # parser : Parser
+        #     Instance of the Parser class cotaining the parsed input file
+        # codes : List[dict]
+        #     A list of dicts containing the new binary codes (key: code) for each 
+        #     command from the input file and additional command data fields passed 
+        #     from the parser. 
+
+        # Methods
+        # -------
+        # make_address_cmd_binary(self, command: str)
+        #     Calls the parser to get the address of an address command then 
+        #     converts the address to an addressing binary command
+        # make_compute_cmd_binary(self, command: str)
+        #     Calls the parser to break a compute command into the destination 
+        #     (dest), computation (comp) and jump segments, then looks up and 
+        #     assembles their corresponding binaries.
+        # write_codes(self, debug: Optional[bool] = False)
+        #     Writes the assembled binary commands to the output file and some
+        #     additional command data to the the debugging output file if that is 
+        #     requested.
 
 
 class TestIntegration(unittest.TestCase):
