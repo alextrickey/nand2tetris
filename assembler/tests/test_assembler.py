@@ -154,26 +154,39 @@ class TestParser(unittest.TestCase):
                 actual_command_type = self.parser.command_type(c)
 
     def test_parse_address_cmd(self):
-        pass
-        # Returns the label/variable name and the address of an address 
-        # command
-
-        # Parameters
-        # ----------
-        # command : str 
-        #     A address command (type: 'ADDRESS_CMD') from the input file 
-            
-        # Returns
-        # ------
-        # name : str
-        #     The text of the label, variable name or raw address in the 
-        #     command. 
-        # address : int
-        #     The address retrieved from the SymbolTable or the raw 
-        #     address if provided
+        
+        commands = [
+            "@valid_variable_name",
+            "@valid_variable_name$2",
+            "@valid_variable_name.2",
+            "@123"
+        ]
+        expected_ouput = [
+            ("valid_variable_name", 16),
+            ("valid_variable_name$2", 17),
+            ("valid_variable_name.2", 18),
+            ("123", 123)
+        ]
+        for i in range(len(commands)):
+            command = commands[i]
+            expected_name, expected_address = expected_ouput[i]
+            actual_name, actual_address = self.parser.parse_address_cmd(command)
+            self.assertEqual(expected_name, actual_name)
+            self.assertEqual(expected_address, actual_address)
 
     def test_parse_compute_cmd(self):
-        pass
+        
+        expected_command_type = "COMPUTE_CMD"
+        valid_cmds = [
+            "A=D+A;JMP",
+            "ADM=!A;JLE",
+            "0",
+            "0;JMP",
+            "A=M+D",
+        ]
+        for c in valid_cmds:
+            actual_command_type = self.parser.command_type(c)
+            self.assertEqual(actual_command_type, expected_command_type)
         # Returns the destination (dest), computation (comp) and jump condition 
         # segments of an compute command (with format: 'dest=comp;jump')
 
