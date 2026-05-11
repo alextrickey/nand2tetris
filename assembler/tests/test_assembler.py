@@ -86,31 +86,118 @@ class TestParser(unittest.TestCase):
             filepath='tests/fixtures/Rect.asm', 
             symbols=self.symbol_table)
 
-    def test_output_paths(self):
-        # output_filepath : str
-        #     The filepath of the output file
-        # debug_filepath : str
-        #     The filepath of an optional file containing debugging data 
-        # parser : Parser
-        #     Instance of the Parser class cotaining the parsed input file
-        # codes : List[dict]
-        #     A list of dicts containing the new binary codes (key: code) for each 
-        #     command from the input file and additional command data fields passed 
-        #     from the parser. 
+    def test_command_type__label(self):
+        expected_command_type = "LABEL_CMD"
+        valid_cmds = [
+            "(valid_label_name)",
+            "(valid_label_name$2)",
+            "(valid_variable_name.2)",
+        ]
+        for c in valid_cmds:
+            actual_command_type = self.parser.command_type(c)
+            self.assertEqual(actual_command_type, expected_command_type)
 
-        # Methods
-        # -------
-        # make_address_cmd_binary(self, command: str)
-        #     Calls the parser to get the address of an address command then 
-        #     converts the address to an addressing binary command
-        # make_compute_cmd_binary(self, command: str)
-        #     Calls the parser to break a compute command into the destination 
-        #     (dest), computation (comp) and jump segments, then looks up and 
-        #     assembles their corresponding binaries.
-        # write_codes(self, debug: Optional[bool] = False)
-        #     Writes the assembled binary commands to the output file and some
-        #     additional command data to the the debugging output file if that is 
-        #     requested.
+        invalid_cmds = [
+            "(2invalid_address)",
+            "(123)",
+            "(123.2)",
+            "(_invalid)",
+            "($invalid)",
+        ]
+        for c in invalid_cmds:
+            with self.assertRaises:
+                actual_command_type = self.parser.command_type(c)
+
+    def test_command_type__address(self):
+        expected_command_type = "ADDRESS_CMD"
+        valid_cmds = [
+            "@valid_variable_name",
+            "@valid_variable_name$2",
+            "@valid_variable_name.2",
+            "@123"
+        ]
+        for c in valid_cmds:
+            actual_command_type = self.parser.command_type(c)
+            self.assertEqual(actual_command_type, expected_command_type)
+
+        invalid_cmds = [
+            "@2invalid_address",
+            "@123.2",
+            "@_invalid",
+            "@$invalid",
+        ]
+        for c in invalid_cmds:
+            with self.assertRaises:
+                actual_command_type = self.parser.command_type(c)
+
+    def test_command_type__compute(self):
+        expected_command_type = "COMPUTE_CMD"
+        valid_cmds = [
+            "A=D+A;JMP",
+            "ADM=!A;JLE",
+            "0",
+            "0;JMP",
+            "A=M+D",
+        ]
+        for c in valid_cmds:
+            actual_command_type = self.parser.command_type(c)
+            self.assertEqual(actual_command_type, expected_command_type)
+
+        invalid_cmds = [
+            "JMP",
+            "Q=D+A;JLE",
+            "A=(A+D)|M",
+            "JMP",
+        ]
+        for c in invalid_cmds:
+            with self.assertRaises:
+                actual_command_type = self.parser.command_type(c)
+
+    def test_parse_address_cmd(self):
+        pass
+        # Returns the label/variable name and the address of an address 
+        # command
+
+        # Parameters
+        # ----------
+        # command : str 
+        #     A address command (type: 'ADDRESS_CMD') from the input file 
+            
+        # Returns
+        # ------
+        # name : str
+        #     The text of the label, variable name or raw address in the 
+        #     command. 
+        # address : int
+        #     The address retrieved from the SymbolTable or the raw 
+        #     address if provided
+
+    def test_parse_compute_cmd(self):
+        pass
+        # Returns the destination (dest), computation (comp) and jump condition 
+        # segments of an compute command (with format: 'dest=comp;jump')
+
+        # Parameters
+        # ----------
+        # command : str 
+        #     A compute command (type 'COMPUTE_CMD') from the input file 
+            
+        # Returns
+        # ------
+        # dest : str
+        #     The text preceding the '=' indicating which registers or memory
+        #     locations to store the result. The destinations may include various 
+        #     combinations of A, D or M. If no destination is present in the 
+        #     command None is returned. 
+        # comp : str
+        #     The text indicating what computation should be completed. For 
+        #     possible computations, see constants.COMP_MNEMONICS. 
+        #     Computation commands must contain comp text, so this cannot be 
+        #     None. 
+        # jump : str
+        #     The text after the ';' indicating under what conditions a jump 
+        #     should occur. For possible values, see constants.JUMP_MNEMONICS. 
+        #     If no jump condition is present in the command None is returned. 
 
 
 class TestCode(unittest.TestCase):
@@ -127,7 +214,7 @@ class TestCode(unittest.TestCase):
         #encoder = assembler.Code(parser=parser)
         #encoder.write_codes(debug=False)
 
-    def test_attributes(self):
+    def test_output_paths(self):
         pass
         # output_filepath : str
         #     The filepath of the output file
@@ -161,7 +248,9 @@ class TestIntegration(unittest.TestCase):
         # File Paths
         input_path = 'tests/fixtures/Rect.asm'
         output_path = 'tests/fixtures/Rect.hack'
-        expect_path = 'tests/fixtures/ExpectedRect.hack'
+        # debug_path = 'tests/fixtures/Rect_debug.hack'
+        expect_output_path = 'tests/fixtures/ExpectedRect.hack'
+        # expect_debug_path = 'tests/fixtures/ExpectedRect_debug.hack'
         
         # Initialize Symbols Table
         symbol_table = assembler.SymbolTable()
@@ -176,11 +265,15 @@ class TestIntegration(unittest.TestCase):
 
         with open(output_path) as f:
             actual = f.readlines()
-        
-        with open(expect_path) as f:
+        with open(expect_output_path) as f:
             expect = f.readlines()
-
         self.assertEqual(actual, expect)
+
+        # with open(debug_path) as f:
+        #     actual = f.readlines()
+        # with open(expect_debug_path) as f:
+        #     expect = f.readlines()
+        # self.assertEqual(actual, expect)
 
 
 if __name__ == "__main__":
