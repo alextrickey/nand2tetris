@@ -10,6 +10,7 @@ import constants
 # File Extentions  
 INPUT_FILE_EXTENTION = ".asm"
 OUTPUT_FILE_EXTENTION = ".hack"
+DEBUG_FILE_EXTENTION = ".debug"
 
 # Comment Regex
 # Comments are created by two forward slashes and all text after will be ignored
@@ -447,7 +448,7 @@ class Code:
         self.output_filepath = (
             self.parser.input_filepath[:-4] + OUTPUT_FILE_EXTENTION)
         self.debug_filepath = (
-            self.parser.input_filepath[:-4] + '_debug' + OUTPUT_FILE_EXTENTION)
+            self.parser.input_filepath[:-4] + DEBUG_FILE_EXTENTION)
 
         self.codes = []
         for entry in parser.commands:
@@ -538,5 +539,5 @@ if __name__ == "__main__":
     parser = Parser(filepath=args.filepath, symbols=symbol_table)
     
     # Define Codes and Write to Hack File
-    encoder = Code(parser=parser)
-    encoder.write_codes(debug=args.debug)
+    translator = Code(parser=parser)
+    translator.write_codes(debug=args.debug)
