@@ -76,7 +76,8 @@ cd path/to/assembler
 ```
 
 ## Running Tests
-From the shell, run:  
+Navigate to the assembler directory run unittest:
 ```bash
+cd path/to/assembler
 python3 -m unittest discover tests/
 ```
