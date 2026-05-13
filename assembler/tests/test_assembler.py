@@ -215,78 +215,105 @@ class TestParser(unittest.TestCase):
 
 class TestCode(unittest.TestCase):
     def setUp(self):
-        pass
-        # self.symbol_table = assembler.SymbolTable()
+        self.symbol_table = assembler.SymbolTable()
 
-        # # Build Parser
-        # self.parser = assembler.Parser(
-        #     filepath='tests/fixtures/Rect.asm', 
-        #     symbols=self.symbol_table)
+        # Build Parser
+        self.parser = assembler.Parser(
+            filepath='tests/fixtures/Rect.asm', 
+            symbols=self.symbol_table)
         
         # Define Codes and Write to Hack File
-        #encoder = assembler.Code(parser=parser)
-        #encoder.write_codes(debug=False)
+        self.translator = assembler.Code(parser=self.parser)
 
     def test_output_paths(self):
-        pass
-        # output_filepath : str
-        #     The filepath of the output file
-        # debug_filepath : str
-        #     The filepath of an optional file containing debugging data 
-        # parser : Parser
-        #     Instance of the Parser class cotaining the parsed input file
-        # codes : List[dict]
-        #     A list of dicts containing the new binary codes (key: code) for each 
-        #     command from the input file and additional command data fields passed 
-        #     from the parser. 
+        self.assertEqual(self.translator.output_filepath, 'tests/fixtures/Rect.hack')
+        self.assertEqual(self.translator.debug_filepath, 'tests/fixtures/Rect.debug')
 
-        # Methods
-        # -------
-        # make_address_cmd_binary(self, command: str)
-        #     Calls the parser to get the address of an address command then 
-        #     converts the address to an addressing binary command
-        # make_compute_cmd_binary(self, command: str)
-        #     Calls the parser to break a compute command into the destination 
-        #     (dest), computation (comp) and jump segments, then looks up and 
-        #     assembles their corresponding binaries.
-        # write_codes(self, debug: Optional[bool] = False)
-        #     Writes the assembled binary commands to the output file and some
-        #     additional command data to the the debugging output file if that is 
-        #     requested.
+    def test_address_cmd_binary(self):
+        test_cases = [
+            {'command': '@valid_name',   'expected': '0000000000010010'},
+            {'command': '@valid_name$2', 'expected': '0000000000010011'},
+            {'command': '@123',          'expected': '0000000001111011'},
+        ]
+        for test_case in test_cases:
+            c = test_case['command']
+            actual = self.translator.make_address_cmd_binary(c)
+            self.assertEqual(actual, test_case['expected'])
 
+        invalid_address_cmds = [
+            "A=D+A;JMP",
+            "ADM=!A;JLE",
+            "0",
+            "0;JMP",
+            "A=M+D",
+            "(label_name)",
+            "(label_name$2)",
+            "(variable_name.2)",
+        ]
 
-# class TestIntegration(unittest.TestCase):
+        for c in invalid_address_cmds:
+            with self.assertRaises(Exception):
+                self.translator.make_address_cmd_binary(c)
+    
+    def test_make_compute_cmd_binary(self):
+        test_cases = [
+            {'command': 'A=D+A;JNE',  'expected': '1110000010100101'},
+            {'command': 'ADM=!A;JLE', 'expected': '1110110001111110'},
+            {'command': '0',          'expected': '1110101010000000'},
+            {'command': '0;JMP',      'expected': '1110101010000111'},
+            {'command': 'A=D+M',      'expected': '1111000010100000'},
+        ]
+        for test_case in test_cases:
+            c = test_case['command']
+            actual = self.translator.make_compute_cmd_binary(c)
+            self.assertEqual(actual, test_case['expected'])
 
-#     def test_integration(self):
-#         # File Paths
-#         input_path = 'tests/fixtures/Rect.asm'
-#         output_path = 'tests/fixtures/Rect.hack'
-#         # debug_path = 'tests/fixtures/Rect_debug.hack'
-#         expect_output_path = 'tests/fixtures/ExpectedRect.hack'
-#         # expect_debug_path = 'tests/fixtures/ExpectedRect_debug.hack'
+        invalid_compute_cmds = [
+            "@variable_name",
+            "@variable_name$2",
+            "@variable_name.2",
+            "@123",
+            "(label_name)",
+            "(label_name$2)",
+            "(variable_name.2)",
+        ]
+
+        for c in invalid_compute_cmds:
+            with self.assertRaises(Exception):
+                self.translator.make_compute_cmd_binary(c)
+
+    def test_write_codes(self):
+        # File Paths
+        input_path = 'tests/fixtures/Rect.asm'
+
+        output_path = 'tests/fixtures/Rect.hack'
+        expect_output_path = 'tests/fixtures/ExpectedRect.hack'
+
+        debug_path = 'tests/fixtures/Rect.debug'
+        expect_debug_path = 'tests/fixtures/ExpectedRect.debug'
         
-#         # Initialize Symbols Table
-#         symbol_table = assembler.SymbolTable()
+        # Initialize Symbols Table
+        symbol_table = assembler.SymbolTable()
 
-#         # Build Parser
-#         parser = assembler.Parser(filepath=input_path, 
-#                                   symbols=symbol_table)
+        # Build Parser
+        parser = assembler.Parser(filepath=input_path, 
+                                  symbols=symbol_table)
         
-#         # Define Codes and Write to Hack File
-#         encoder = assembler.Code(parser=parser)
-#         encoder.write_codes(debug=False)
+        # Define Codes and Write to Hack File
+        translator = assembler.Code(parser=parser)
+        translator.write_codes(debug=True)
 
-#         with open(output_path) as f:
-#             actual = f.readlines()
-#         with open(expect_output_path) as f:
-#             expect = f.readlines()
-#         self.assertEqual(actual, expect)
+        with open(output_path) as f:
+            actual = f.readlines()
+        with open(expect_output_path) as f:
+            expect = f.readlines()
+        self.assertEqual(actual, expect)
 
-#         # with open(debug_path) as f:
-#         #     actual = f.readlines()
-#         # with open(expect_debug_path) as f:
-#         #     expect = f.readlines()
-#         # self.assertEqual(actual, expect)
+        with open(debug_path) as f:
+            actual = f.readlines()
+        with open(expect_debug_path) as f:
+            expect = f.readlines()
+        self.assertEqual(actual, expect)
 
 
 if __name__ == "__main__":
