@@ -53,7 +53,7 @@ in `assembler/constants.py`.
 
 
 ## Setup 
-Requires Python 3.9+ and uses only standard libraries. 
+Assembler was tested in Python 3.9 and uses only standard libraries. 
 
 ## Running the Assembler
 To build binaries for an assembly (`.asm`) file navigate to the assembler
