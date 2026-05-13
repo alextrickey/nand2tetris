@@ -334,12 +334,12 @@ class Parser:
             The address retrieved from the SymbolTable or the raw 
             address if provided
         """
-        # command_type = self.command_type(command)
-        # if command_type != "ADDRESS_CMD":
-        #     raise Exception(
-        #         f"Address parsing requires an ADDRESS_CMD, "
-        #         f"received {self.command_type}"
-        #         )
+        command_type = self.command_type(command)
+        if command_type != "ADDRESS_CMD":
+            raise Exception(
+                f"Address parsing requires an ADDRESS_CMD, "
+                f"received {self.command_type}"
+                )
 
         match = re.match(INT_ADDRESS_CMD, command)
         if match: 
@@ -374,12 +374,12 @@ class Parser:
             should occur. For possible values, see constants.JUMP_MNEMONICS. 
             If no jump condition is present in the command None is returned. 
         """
-        # command_type = self.command_type(command)
-        # if command_type != "COMPUTE_CMD":
-        #     raise Exception(
-        #         f"Computation parsing requires a COMPUTE_CMD, "
-        #         f"received {self.command_type}"
-        #         )
+        command_type = self.command_type(command)
+        if command_type != "COMPUTE_CMD":
+            raise Exception(
+                f"Computation parsing requires a COMPUTE_CMD, "
+                f"received {self.command_type}"
+                )
         
         dest = None
         jump = None
