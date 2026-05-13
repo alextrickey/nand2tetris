@@ -168,6 +168,20 @@ class TestParser(unittest.TestCase):
             self.assertEqual(expected_name, actual_name)
             self.assertEqual(expected_address, actual_address)
 
+        not_address_cmds = [
+            "A=D+A;JMP",
+            "ADM=!A;JLE",
+            "0",
+            "0;JMP",
+            "A=M+D",
+            "(label_name)",
+            "(label_name$2)",
+            "(variable_name.2)",
+        ]
+        for c in not_address_cmds:
+            with self.assertRaises(Exception):
+                unparsable = self.parser.parse_address_cmd(c)
+
     def test_parse_compute_cmd(self):
         
         test_cases = [
@@ -181,9 +195,22 @@ class TestParser(unittest.TestCase):
             command = test_case['command']
             expected_dest, expected_comp, expected_jump = test_case['output']
             dest, comp, jump = self.parser.parse_compute_cmd(command)
-            # self.assertEqual(expected_dest, dest)
-            # self.assertEqual(expected_comp, comp)
-            # self.assertEqual(expected_jump, jump)
+            self.assertEqual(expected_dest, dest)
+            self.assertEqual(expected_comp, comp)
+            self.assertEqual(expected_jump, jump)
+        
+        not_compute_cmds = [
+            "@variable_name",
+            "@variable_name$2",
+            "@variable_name.2",
+            "@123",
+            "(label_name)",
+            "(label_name$2)",
+            "(variable_name.2)",
+        ]
+        for c in not_compute_cmds:
+            with self.assertRaises(Exception):
+                unparsable = self.parser.parse_compute_cmd(c)
 
 
 class TestCode(unittest.TestCase):
