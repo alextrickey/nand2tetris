@@ -28,35 +28,26 @@ VAR_ADDRESS_CMD = r"^\@(" + LABEL + r")$"
 ADDRESS_CMD = r"^\@((\d+)|(" + LABEL + r"))$"  
 
 # Compute Command Regex ("Destination=Result;Jump")
-DESTINATION = r"^([AMD]+=)"
+DESTINATION_PATTERN = r"^([AMD]+=)"
+COMPUTATION_PATTERN = utils.regex_any([
+    r"0",
+    r"-?1",
+    r"[-!]?[AMD]",
+    r"[AMD][+-][AMD1]",
+    r"[AMD][\&\|][AMD]",
+])
+JUMP_PATTERN = utils.regex_any([
+    r";JMP$",
+    r";J[GL][TE]$",
+    r";JEQ$",
+    r";JNE$"
+])
 
-RESULT_0 = r"0"
-RESULT_1 = r"-?1"
-RESULT_2 = r"[-!]?[AMD]"
-RESULT_3 = r"[AMD][+-][AMD]"
-RESULT_4 = r"[AMD][\&\|][AMD]"
-RESULT = (
-	r"((" + 
-    RESULT_0 + r")|(" + 
-    RESULT_1 + r")|(" +
-    RESULT_2 + r")|(" +
-    RESULT_3 + r")|(" +
-    RESULT_4 + r")|(" +
-    r"))"
+COMPUTE_CMD = (
+    DESTINATION_PATTERN + r"?" + 
+    COMPUTATION_PATTERN + 
+    JUMP_PATTERN + r"?$"
 )
-
-JUMP_0 = r";JMP$"
-JUMP_1 = r";J[GL][TE]$"
-JUMP_2 = r";JEQ$"
-JUMP_3 = r";JNE$"
-JUMP = (r"((" + 
-    JUMP_0 + r")|(" + 
-    JUMP_1 + r")|(" +
-    JUMP_2 + r")|(" +
-    JUMP_3 + r"))"
-)
-
-COMPUTE_CMD = DESTINATION + r"?" + RESULT + JUMP + r"?"
 
 class SymbolTable:
     """
@@ -316,11 +307,11 @@ class Parser:
             COMPUTE_CMD if the comment specifies a computation of form
                 'dest=computation;jump' where dest and jump are optional
         """
-        if re.search(LABEL_CMD, command):
+        if re.match(LABEL_CMD, command):
             return "LABEL_CMD"
-        if re.search(ADDRESS_CMD, command):
+        if re.match(ADDRESS_CMD, command):
             return "ADDRESS_CMD"
-        elif re.search(COMPUTE_CMD, command):
+        elif re.match(COMPUTE_CMD, command):
             return "COMPUTE_CMD"
         else: 
             raise SyntaxError(f"Unrecognized command format: '{command}'")
@@ -343,10 +334,17 @@ class Parser:
             The address retrieved from the SymbolTable or the raw 
             address if provided
         """
-        match = re.search(INT_ADDRESS_CMD, command)
+        # command_type = self.command_type(command)
+        # if command_type != "ADDRESS_CMD":
+        #     raise Exception(
+        #         f"Address parsing requires an ADDRESS_CMD, "
+        #         f"received {self.command_type}"
+        #         )
+
+        match = re.match(INT_ADDRESS_CMD, command)
         if match: 
             return command[1:], int(command[1:])
-        match = re.search(VAR_ADDRESS_CMD, command)
+        match = re.match(VAR_ADDRESS_CMD, command)
         if match:
             return command[1:], self.symbols.get_address(command[1:])
 
@@ -376,13 +374,20 @@ class Parser:
             should occur. For possible values, see constants.JUMP_MNEMONICS. 
             If no jump condition is present in the command None is returned. 
         """
+        # command_type = self.command_type(command)
+        # if command_type != "COMPUTE_CMD":
+        #     raise Exception(
+        #         f"Computation parsing requires a COMPUTE_CMD, "
+        #         f"received {self.command_type}"
+        #         )
+        
         dest = None
         jump = None
-        match = re.search(DESTINATION, command)
+        match = re.match(DESTINATION_PATTERN, command)
         if match: 
             dest = command[match.start():match.end()-1]
             command = command[match.end():]
-        match = re.search(JUMP, command)
+        match = re.search(JUMP_PATTERN, command)
         if match: 
             jump = command[match.start()+1:]
             command = command[:match.start()]
